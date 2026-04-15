@@ -1,0 +1,138 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Вход | ARMA Fitness</title>
+    <style>
+        /* Основной фон с залом */
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            overflow: hidden;
+        }
+
+        .bg-image {
+            background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.7)), 
+                              url("{% static 'activities/images/wide-shot-parked-bicycles-shed.jpg' %}");
+            height: 100%;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Анимация появления */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes logoScale {
+            0% { transform: scale(0); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .login-box {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+            width: 350px;
+            text-align: center;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: fadeInUp 1s ease-out;
+        }
+
+        /* Логотип Буква A */
+        .logo {
+            width: 80px;
+            height: 80px;
+            background: #ff4d4d;
+            color: white;
+            font-size: 50px;
+            font-weight: 900;
+            line-height: 80px;
+            border-radius: 15px;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 20px rgba(255, 77, 77, 0.4);
+            animation: logoScale 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .slogan {
+            font-size: 0.9em;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 30px;
+            opacity: 0.8;
+            font-weight: 300;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            border: none;
+            background: rgba(255, 255, 255, 0.9);
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: #ff4d4d;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+            text-transform: uppercase;
+        }
+
+        .btn-login:hover {
+            background: #ff3333;
+            transform: scale(1.02);
+        }
+
+        .links {
+            margin-top: 20px;
+            font-size: 0.85em;
+        }
+
+        .links a {
+            color: #ff4d4d;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-image">
+        <div class="login-box">
+            <div class="logo">A</div>
+            <div class="slogan">Твой предел — это только начало</div>
+            
+            <form method="POST">
+                {% csrf_token %}
+                <input type="text" name="username" placeholder="Логин" required>
+                <input type="password" name="password" placeholder="Пароль" required>
+                <button type="submit" class="btn-login">Войти в систему</button>
+            </form>
+
+            <div class="links">
+                Нет аккаунта? <a href="{% url 'register' %}">Создать профиль</a>
+            </div>
+            {% if error %}
+                <p style="color: #ff4d4d; margin-top: 15px;">{{ error }}</p>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,123 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Мой профиль | Fitness App</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; color: #333; }
+        .profile-container { max-width: 500px; margin: 40px auto; padding: 20px; }
+        .back-link { text-decoration: none; color: #666; font-size: 0.9em; display: block; margin-bottom: 20px; }
+        .profile-card { background: white; border-radius: 20px; padding: 30px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); text-align: center; }
+        
+        .avatar-wrapper { position: relative; width: 120px; height: 120px; margin: 0 auto 20px; }
+        .avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 4px solid #fff; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .avatar-placeholder { width: 100%; height: 100%; background: #007bff; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; }
+
+        /* Стиль для глобального ранга */
+        .global-rank-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(110, 142, 251, 0.3);
+        }
+
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 25px 0; }
+        .stat-box { background: #f8f9fa; padding: 15px; border-radius: 12px; text-align: center; }
+        .stat-value { display: block; font-weight: bold; font-size: 1.1em; color: #007bff; }
+        .stat-label { font-size: 0.75em; color: #888; text-transform: uppercase; }
+        
+        /* Особый стиль для ИМТ */
+        .bmi-box { background: #e7f3ff; border: 1px solid #b3d7ff; grid-column: span 2; }
+
+        .form-group { text-align: left; margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 0.85em; color: #666; margin-bottom: 5px; margin-left: 5px; }
+        .form-control { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 1em; outline: none; transition: border 0.3s; }
+        .form-control:focus { border-color: #007bff; }
+
+        .btn-save { width: 100%; background: #007bff; color: white; border: none; padding: 14px; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: background 0.3s; }
+        .btn-save:hover { background: #0056b3; }
+        .change-pass { display: inline-block; margin-top: 20px; color: #888; font-size: 0.85em; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="profile-container">
+        <a href="{% url 'home' %}" class="back-link">← Вернуться к категориям</a>
+        
+        <div class="profile-card">
+            <div class="avatar-wrapper">
+                {% if profile.avatar %}
+                    <img src="{{ profile.avatar.url }}" class="avatar-img">
+                {% else %}
+                    <div class="avatar-placeholder">👤</div>
+                {% endif %}
+            </div>
+
+            <h2 style="margin: 0;">{{ request.user.username }}</h2>
+            
+            <!-- Глобальный ранг как почетный значок -->
+            <div class="global-rank-badge">
+                {{ profile.get_global_rank }}
+            </div>
+
+            <p style="color: #888; font-size: 0.85em; margin-top: -10px;">Общий уровень атлета</p>
+
+            <!-- Плитки со статистикой -->
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <span class="stat-value">{{ profile.age|default:"—" }}</span>
+                    <span class="stat-label">Лет</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-value">{{ profile.height|default:"—" }}</span>
+                    <span class="stat-label">Рост (см)</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-value">{{ profile.weight|default:"—" }}</span>
+                    <span class="stat-label">Вес (кг)</span>
+                </div>
+                <!-- ИМТ выносим в более заметный блок -->
+                <div class="stat-box bmi-box">
+                    <span class="stat-value" style="color: #0056b3;">
+                        {{ profile.get_bmi|default:"—" }}
+                    </span>
+                    <span class="stat-label">Индекс массы тела ({{ profile.get_bmi_status }})</span>
+                </div>
+            </div>
+
+            <!-- Форма редактирования -->
+            <form method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label>Изменить фото профиля</label>
+                    <input type="file" name="avatar" class="form-control" style="font-size: 0.8em; padding: 8px;">
+                </div>
+                
+                <div class="form-group">
+                    <label>Возраст</label>
+                    <input type="number" name="age" value="{{ profile.age|default:'' }}" class="form-control">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-group">
+                        <label>Рост (см)</label>
+                        <input type="number" name="height" value="{{ profile.height|default:'' }}" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label>Вес (кг)</label>
+                        <input type="number" step="0.1" name="weight" value="{{ profile.weight|default:'' }}" class="form-control">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-save">Обновить данные</button>
+            </form>
+
+            <a href="/admin/password_change/" class="change-pass">🔒 Безопасная смена пароля</a>
+        </div>
+    </div>
+</body>
+</html>

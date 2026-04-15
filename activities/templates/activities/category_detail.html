@@ -1,0 +1,74 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ category.name }}</title>
+    <link rel="stylesheet" href="{% static 'activities/css/style.css' %}">
+</head>
+
+<div class="card" style="background: #212529; color: white; padding: 20px; border-radius: 15px; margin-bottom: 30px; border: none;">
+    <div style="font-size: 0.8em; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px;">Ваш статус в этой категории</div>
+    <div style="font-size: 1.8em; font-weight: bold; margin-top: 5px; color: #ffca28;">{{ user_rank }}</div>
+    
+    <!-- Декоративная шкала прогресса -->
+    <div style="width: 100%; height: 6px; background: #444; border-radius: 10px; margin-top: 15px; position: relative; overflow: hidden;">
+        <!-- Мы просто визуализируем прогресс (чем меньше %, тем шире полоска) -->
+        <div style="width: 80%; height: 100%; background: linear-gradient(90deg, #ffca28, #ffd54f); border-radius: 10px;"></div>
+    </div>
+</div>
+<body class="bg-light">
+    <div class="container mt-5" style="max-width: 800px; margin: auto; padding: 20px;">
+        <a href="{% url 'home' %}" style="text-decoration: none;">← Ко всем категориям</a>
+        
+        <h1 style="margin-top: 20px;">{{ category.icon }} {{ category.name }}</h1>
+        <p style="color: #666;">Выберите упражнение для просмотра рейтинга и записи результата</p>
+
+        <div style="display: grid; grid-template-columns: 1fr; gap: 15px; margin-top: 20px;">
+            {% for ex in exercises %}
+            <a href="{% url 'exercise_detail' ex.pk %}" style="text-decoration: none; color: inherit;">
+                <div class="card" style="background: white; padding: 20px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee;">
+                    <strong>{{ ex.name }}</strong>
+                    <span style="color: #007bff;">Перейти →</span>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+
+        <h3 style="margin-top: 40px;">🏆 Рейтинг категории: {{ category.name }}</h3>
+        <div class="card" style="background: white; padding: 20px; border-radius: 12px; border: none; shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #eee; color: #888; font-size: 0.85em;">
+                        <th style="padding: 10px; text-align: left;">#</th>
+                        <th style="padding: 10px; text-align: left;">АТЛЕТ</th>
+                        <th style="padding: 10px; text-align: right;">СР. МЕСТО</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in leaderboard %} <!-- Теперь мы итерируем по leaderboard_data -->
+                    <tr style="border-bottom: 1px solid #eee; {% if entry.user == request.user %}background: #f0f7ff;{% endif %}">
+                        <td style="padding: 12px; font-weight: bold;">
+                            {{ forloop.counter }}
+                        </td>
+                        <td style="padding: 12px; display: flex; align-items: center; gap: 10px;">
+                            {% if entry.user.profile.avatar %}
+                                <img src="{{ entry.user.profile.avatar.url }}" style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover;">
+                            {% else %}
+                                <div style="width: 30px; height: 30px; background: #eee; border-radius: 50%; text-align: center; line-height: 30px; font-size: 12px;">👤</div>
+                            {% endif %}
+                            {{ entry.user.username }}
+                        </td>
+                        <td style="padding: 12px; text-align: right;">
+                            <!-- ВОТ ОНА: Переменная, которую мы подготовили во views.py -->
+                            <span style="background: #e7f3ff; color: #007bff; padding: 4px 10px; border-radius: 15px; font-weight: bold; font-size: 0.9em;">
+                                {{ entry.avg_place }} место
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>
