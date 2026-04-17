@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from django.db.models import OuterRef, Subquery
 
 from .models import ActivityType, UserActivityLog, DailyQuest, UserProfile, ActivityCategory
 from .serializers import ActivityLogSerializer
@@ -111,10 +112,24 @@ def category_detail_view(request, pk):
 @login_required(login_url='login')
 def exercise_detail_view(request, pk):
     exercise = get_object_or_404(ActivityType, pk=pk)
-     # Считаем рекорд (Max) для каждого пользователя и называем его best_result
-    leaderboard = User.objects.filter(logs__activity_type=exercise).annotate(
-        best_result=Max('logs__quantity') 
-    ).order_by('-best_result')[:10]
+    # Сложный запрос: выбираем лучшие логи для каждого уникального пользователя
+    # Мы берем последние записи, сгруппированные по юзеру, где количество максимально
+
+    # 1. Подзапрос: ищем ID лучшего лога для каждого пользователя
+    best_log_subquery = UserActivityLog.objects.filter(
+        user=OuterRef('pk'),
+        activity_type=exercise
+    ).order_by('-quantity', '-created_at').values('id')[:1]
+
+    # 2. Основной запрос: используем 'logs' (как указано в ошибке Choices are: ..., logs, ...)
+    leaderboard = UserActivityLog.objects.filter(
+        id__in=Subquery(
+            User.objects.filter(logs__activity_type=exercise)
+            .distinct()
+            .annotate(top_log_id=Subquery(best_log_subquery))
+            .values('top_log_id')
+        )
+    ).select_related('user', 'user__profile').order_by('-quantity')[:10]
 
     # ЛОГИ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ (для возможности удаления)
     user_logs = UserActivityLog.objects.filter(

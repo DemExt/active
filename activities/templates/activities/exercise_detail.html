@@ -80,27 +80,30 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for user in leaderboard %}
-                    <tr style="border-bottom: 1px solid #eee; {% if user.username == request.user.username %}background: #f0f7ff;{% endif %}">
-                        <td style="padding: 15px; font-weight: bold;">
-                            {% if forloop.counter == 1 %}🥇{% elif forloop.counter == 2 %}🥈{% elif forloop.counter == 3 %}🥉{% else %}{{ forloop.counter }}{% endif %}
-                        </td>
+                    {% for log in leaderboard %}
+                    <tr style="border-bottom: 1px solid #eee; {% if log.user == request.user %}background: #f0f7ff;{% endif %}">
+                        <td style="padding: 15px; font-weight: bold;">{{ forloop.counter }}</td>
                         <td style="padding: 15px; display: flex; align-items: center; gap: 10px;">
-                            {% if user.profile.avatar %}
-                                <img src="{{ user.profile.avatar.url }}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover;">
+                            {% if log.user.profile.avatar %}
+                                <img src="{{ log.user.profile.avatar.url }}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover;">
                             {% else %}
                                 <div style="width: 35px; height: 35px; background: #eee; border-radius: 50%; text-align: center; line-height: 35px;">👤</div>
                             {% endif %}
-                            <strong>{{ user.username }}</strong>
+                            <strong>{{ log.user.username }}</strong>
                         </td>
                         <td style="padding: 15px; text-align: right;">
-                            <!-- Мы выводим best_result, так как во views.py использовали .annotate(best_result=Max(...)) -->
-                            <span class="record-val">{{ user.best_result }} {{ exercise.unit_name }}</span>
+                            {% if log.video %}
+                                <!-- Если есть видео, делаем результат ссылкой-кнопкой -->
+                                <a href="{{ log.video.url }}" target="_blank" title="Смотреть видео подтверждение" 
+                                   style="text-decoration: none; background: #28a745; color: white; padding: 5px 12px; border-radius: 15px; font-weight: bold; font-size: 0.9em;">
+                                    🎬 {{ log.quantity }} {{ exercise.unit_name }}
+                                </a>
+                            {% else %}
+                                <!-- Если видео нет, просто число -->
+                                <span class="record-val">{{ log.quantity }} {{ exercise.unit_name }}</span>
+                            {% endif %}
+                            <div style="font-size: 0.7em; color: #888; margin-top: 4px;">{{ log.created_at|date:"d.m.Y" }}</div>
                         </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="3" style="text-align: center; padding: 30px; color: #888;">В этом упражнении пока нет рекордов. Будь первым!</td>
                     </tr>
                     {% endfor %}
                 </tbody>
