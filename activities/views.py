@@ -10,9 +10,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from django.db.models import OuterRef, Subquery
+from django.db.models import OuterRef, Subquery, Count
 
-from .models import ActivityType, UserActivityLog, DailyQuest, UserProfile, ActivityCategory
+from .models import ActivityType, UserActivityLog, DailyQuest, UserProfile, ActivityCategory, Like, Comment
 from .serializers import ActivityLogSerializer
 
 # --- ГЛАВНЫЕ СТРАНИЦЫ ---
@@ -44,8 +44,10 @@ def index_view(request):
     
     progress_percent = min(int((today_points / daily_goal) * 100), 100)
 
-    # 4. Лента последних 20 записей
-    recent_logs = UserActivityLog.objects.select_related(
+    # 4. Фильтруем логи: только те, где ЕСТЬ видео
+    recent_logs = UserActivityLog.objects.filter(
+        video__isnull=False
+    ).exclude(video='').select_related(
         'user', 'user__profile', 'activity_type'
     ).order_by('-created_at')[:20]
 
@@ -157,25 +159,31 @@ def exercise_detail_view(request, pk):
 def profile_view(request):
     profile, created = UserProfile.objects.get_or_create(user=request.user)
     
+    # Считаем топ-5 упражнений этого пользователя
+    # Используем related_name='logs' из вашей модели UserActivityLog
+    favorite_activities = request.user.logs.values('activity_type__name').annotate(
+        total_count=Count('id')
+    ).order_by('-total_count')[:5]
+
     if request.method == "POST":
-        # Получаем данные
         age = request.POST.get('age')
         height = request.POST.get('height')
         weight = request.POST.get('weight')
         
-        # Проверяем каждое поле: если пустая строка, то сохраняем None
         profile.age = int(age) if age and age.strip() else None
         profile.height = int(height) if height and height.strip() else None
         profile.weight = float(weight) if weight and weight.strip() else None
         
-        # Обработка аватарки
         if request.FILES.get('avatar'):
             profile.avatar = request.FILES.get('avatar')
             
         profile.save()
         return redirect('profile')
 
-    return render(request, 'activities/profile.html', {'profile': profile})
+    return render(request, 'activities/profile.html', {
+        'profile': profile,
+        'favorite_activities': favorite_activities
+    })
 
 def register_view(request):
     if request.method == "POST":
@@ -247,3 +255,30 @@ def delete_log_view(request, pk):
         return redirect('exercise_detail', pk=exercise_id)
     
     return redirect('home')
+
+@login_required
+def toggle_like(request, log_id):
+    log = get_object_or_404(UserActivityLog, id=log_id)
+    like, created = Like.objects.get_or_create(user=request.user, log=log)
+    
+    if not created:
+        like.delete()
+        liked = False
+    else:
+        liked = True
+    
+    return JsonResponse({'liked': liked, 'count': log.likes.count()})
+
+@login_required
+def add_comment(request, log_id):
+    if request.method == "POST":
+        log = get_object_or_404(UserActivityLog, id=log_id)
+        text = request.POST.get('text')
+        if text:
+            comment = Comment.objects.create(user=request.user, log=log, text=text)
+            return JsonResponse({
+                'status': 'ok',
+                'username': comment.user.username,
+                'text': comment.text
+            })
+    return JsonResponse({'status': 'error'}, status=400)

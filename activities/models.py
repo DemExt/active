@@ -208,3 +208,17 @@ class DailyQuest(models.Model):
     activity_type = models.ForeignKey(ActivityType, on_delete=models.CASCADE)
     required_quantity = models.IntegerField()
     bonus_points = models.IntegerField()
+
+class Like(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    log = models.ForeignKey('UserActivityLog', on_delete=models.CASCADE, related_name='likes')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user', 'log') # Один пользователь — один лайк
+
+class Comment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    log = models.ForeignKey('UserActivityLog', on_delete=models.CASCADE, related_name='comments')
+    text = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)

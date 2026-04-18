@@ -1,4 +1,5 @@
 {% load static %}
+{% load humanize %}
 <!DOCTYPE html>
 <html>
 <head>
@@ -168,7 +169,7 @@
                     {% endif %}
                     <div>
                         <strong style="display: block; font-size: 1.1em;">{{ log.user.username }}</strong>
-                        <small style="color: #888;">{{ log.created_at|date:"d M Y в H:i" }}</small>
+                        <small style="color: #888;">{{ log.created_at|naturaltime }}</small>
                     </div>
                 </div>
 
@@ -178,24 +179,93 @@
                     <span style="color: #28a745; font-weight: bold;">{{ log.quantity }} {{ log.activity_type.unit_name }}</span>
                 </p>
 
-                <!-- Видео (если есть) -->
+                <!-- 2. Видео -->
                 {% if log.video %}
                 <video class="feed-video" controls>
                     <source src="{{ log.video.url }}" type="video/mp4">
-                    Ваш браузер не поддерживает видео.
                 </video>
                 {% endif %}
-            </div>
-            {% empty %}
-            <p style="text-align: center; color: #888;">Пока никто не выложил видео тренировок.</p>
-            {% endfor %}
-        </div>
 
-        {% if request.user.is_staff %}
-        <div style="text-align: center; margin-top: 60px;">
-            <a href="/admin/" style="color: #ccc; text-decoration: none; font-size: 0.8em; letter-spacing: 1px;">DATABASE ADMIN</a>
+                <!-- 3. ЛАЙКИ (ТЕПЕРЬ ВНУТРИ ЦИКЛА) -->
+                <div style="margin-top: 15px; display: flex; align-items: center; gap: 15px;">
+                    <button onclick="likeLog({{ log.id }}, this)" style="background: none; border: none; cursor: pointer;">
+                        <span class="heart">{% if request.user in log.likes.all %}❤️{% else %}🤍{% endif %}</span>
+                        <span class="like-count">{{ log.likes.count }}</span>
+                    </button>
+                    <span style="font-size: 0.9em; color: #888;">💬 {{ log.comments.count }}</span>
+                </div>
+
+                <!-- 4. КОММЕНТАРИИ (ТЕПЕРЬ ВНУТРИ ЦИКЛА) -->
+                <div style="margin-top: 15px; border-top: 1px solid #f0f0f0; padding-top: 10px;">
+                    <div id="comments-{{ log.id }}" style="max-height: 150px; overflow-y: auto; margin-bottom: 10px;">
+                        {% for comment in log.comments.all %}
+                            <div style="font-size: 0.85em; margin-bottom: 5px;">
+                                <strong>{{ comment.user.username }}:</strong> {{ comment.text }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <form class="comment-form" data-log-id="{{ log.id }}" style="display: flex; gap: 10px;">
+                        {% csrf_token %}
+                        <input type="text" name="text" placeholder="Написать комментарий..." required 
+                            style="flex: 1; border: 1px solid #eee; border-radius: 20px; padding: 8px 15px; font-size: 0.85em;">
+                        <button type="submit" style="background: none; border: none; color: #007bff; font-weight: bold; cursor: pointer;">OK</button>
+                    </form>
+                </div>
+
+            </div> <!-- КОНЕЦ карточки feed-card -->
+            {% empty %}
+                <p style="text-align: center; color: #888;">Пока никто не выложил видео.</p>
+            {% endfor %} <!-- КОНЕЦ ЦИКЛА -->
         </div>
-        {% endif %}
     </div>
+    <script>
+        // Функция для лайков
+        function likeLog(logId, btn) {
+            fetch(`/like/${logId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    btn.querySelector('.heart').innerText = data.liked ? '❤️' : '🤍';
+                    btn.querySelector('.like-count').innerText = data.count;
+                })
+                .catch(error => console.error('Ошибка:', error));
+        }
+        document.querySelectorAll('.comment-form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault(); // Отменяем перезагрузку страницы
+                
+                const logId = this.dataset.logId;
+                const formData = new FormData(this);
+                const commentInput = this.querySelector('input[name="text"]');
+                const commentsContainer = document.getElementById(`comments-${logId}`);
+
+                fetch(`/comment/${logId}/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest', // Сообщаем Django, что это AJAX
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        // Создаем новый элемент комментария
+                        const newComment = document.createElement('div');
+                        newComment.style.fontSize = '0.85em';
+                        newComment.style.marginBottom = '5px';
+                        newComment.innerHTML = `<strong>${data.username}:</strong> ${data.text}`;
+                        
+                        // Добавляем его в список и очищаем поле ввода
+                        commentsContainer.appendChild(newComment);
+                        commentInput.value = '';
+                        
+                        // Прокручиваем вниз, если комментариев много
+                        commentsContainer.scrollTop = commentsContainer.scrollHeight;
+                    }
+                })
+                .catch(error => console.error('Ошибка:', error));
+            });
+        });
+    </script>
 </body>
 </html>

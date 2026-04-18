@@ -42,12 +42,50 @@
         .btn-save { width: 100%; background: #007bff; color: white; border: none; padding: 14px; border-radius: 10px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: background 0.3s; }
         .btn-save:hover { background: #0056b3; }
         .change-pass { display: inline-block; margin-top: 20px; color: #888; font-size: 0.85em; text-decoration: none; }
+    
+        /* Навигация */
+        .top-nav { display: flex; justify-content: space-between; align-items: center; padding: 15px 25px; background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .back-link-nav { text-decoration: none; color: #007bff; font-weight: 500; }
+
+        /* Меню */
+        .menu-container { position: relative; }
+        .menu-btn { background: #f0f2f5; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; }
+        .dropdown-content { display: none; position: absolute; right: 0; background: white; min-width: 200px; box-shadow: 0 8px 16px rgba(0,0,0,0.1); border-radius: 12px; z-index: 100; overflow: hidden; }
+        .dropdown-content a, .logout-btn { padding: 12px 16px; text-decoration: none; display: block; color: #333; font-size: 0.9em; text-align: left; width: 100%; border: none; background: none; cursor: pointer; }
+        .dropdown-content a:hover, .logout-btn:hover { background-color: #f8f9fa; }
+        .dropdown-header { padding: 10px 16px; font-size: 0.7em; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+        .show { display: block; }
+
+        /* Список активностей */
+        .fav-activities { margin-top: 25px; border-top: 1px solid #eee; padding-top: 20px; }
+        .activity-item { display: flex; justify-content: space-between; background: #fff; border: 1px solid #f0f0f0; padding: 10px 15px; border-radius: 10px; margin-bottom: 8px; font-size: 0.9em; }
+        .activity-count { background: #e7f3ff; color: #007bff; padding: 2px 8px; border-radius: 5px; font-weight: bold; font-size: 0.8em; }
+
+        .btn-cancel { background: #eee; border: none; padding: 10px; width: 100%; border-radius: 10px; margin-top: 5px; cursor: pointer; }
+            
     </style>
 </head>
 <body>
+    <!-- Верхняя панель управления -->
+    <div class="top-nav">
+        <a href="{% url 'home' %}" class="back-link-nav">← На главную</a>
+        <div class="menu-container">
+            <button class="menu-btn" onclick="toggleMenu()">⚙️ Настройки</button>
+            <div id="dropdownMenu" class="dropdown-content">
+                <div class="dropdown-header">Управление аккаунтом</div>
+                <a href="javascript:void(0)" onclick="showSection('edit-section')">✏️ Редактировать данные</a>
+                <a href="{% url 'password_change' %}">🔒 Сменить пароль</a>
+                <hr>
+                <form action="{% url 'logout' %}" method="POST" style="margin:0;">
+                    {% csrf_token %}
+                    <button type="submit" class="logout-btn">🚪 Выйти</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <div class="profile-container">
-        <a href="{% url 'home' %}" class="back-link">← Вернуться к категориям</a>
-        
+        <!-- КАРТОЧКА АТЛЕТА -->
         <div class="profile-card">
             <div class="avatar-wrapper">
                 {% if profile.avatar %}
@@ -57,16 +95,9 @@
                 {% endif %}
             </div>
 
-            <h2 style="margin: 0;">{{ request.user.username }}</h2>
-            
-            <!-- Глобальный ранг как почетный значок -->
-            <div class="global-rank-badge">
-                {{ profile.get_global_rank }}
-            </div>
+            <h2 style="margin: 0 0 5px 0;">{{ request.user.username }}</h2>
+            <div class="global-rank-badge">{{ profile.get_global_rank }}</div>
 
-            <p style="color: #888; font-size: 0.85em; margin-top: -10px;">Общий уровень атлета</p>
-
-            <!-- Плитки со статистикой -->
             <div class="stats-grid">
                 <div class="stat-box">
                     <span class="stat-value">{{ profile.age|default:"—" }}</span>
@@ -74,34 +105,47 @@
                 </div>
                 <div class="stat-box">
                     <span class="stat-value">{{ profile.height|default:"—" }}</span>
-                    <span class="stat-label">Рост (см)</span>
+                    <span class="stat-label">Рост</span>
                 </div>
                 <div class="stat-box">
                     <span class="stat-value">{{ profile.weight|default:"—" }}</span>
-                    <span class="stat-label">Вес (кг)</span>
+                    <span class="stat-label">Вес</span>
                 </div>
-                <!-- ИМТ выносим в более заметный блок -->
                 <div class="stat-box bmi-box">
-                    <span class="stat-value" style="color: #0056b3;">
-                        {{ profile.get_bmi|default:"—" }}
-                    </span>
-                    <span class="stat-label">Индекс массы тела ({{ profile.get_bmi_status }})</span>
+                    <span class="stat-value">{{ profile.get_bmi|default:"—" }}</span>
+                    <span class="stat-label">ИМТ: {{ profile.get_bmi_status }}</span>
                 </div>
             </div>
 
-            <!-- Форма редактирования -->
+            <!-- БЛОК ЛЮБИМЫХ УПРАЖНЕНИЙ -->
+            <div class="fav-activities">
+                <h4 style="text-align: left; margin-bottom: 10px;">🔥 Часто выполняемые</h4>
+                <div class="activities-list">
+                    {% for activity in favorite_activities %}
+                        <div class="activity-item">
+                            <span>{{ activity.activity_type__name }}</span>
+                            <span class="activity-count">{{ activity.total_count }} раз</span>
+                        </div>
+                    {% empty %}
+                        <p style="color: #999; font-size: 0.8em;">Начните тренироваться, чтобы увидеть статистику</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- СКРЫТАЯ ФОРМА РЕДАКТИРОВАНИЯ -->
+        <div id="edit-section" class="profile-card" style="display: none; margin-top: 20px;">
+            <h3 style="margin-top: 0;">Редактировать профиль</h3>
             <form method="POST" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="form-group">
-                    <label>Изменить фото профиля</label>
-                    <input type="file" name="avatar" class="form-control" style="font-size: 0.8em; padding: 8px;">
+                    <label>Новое фото</label>
+                    <input type="file" name="avatar" class="form-control">
                 </div>
-                
                 <div class="form-group">
                     <label>Возраст</label>
                     <input type="number" name="age" value="{{ profile.age|default:'' }}" class="form-control">
                 </div>
-
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div class="form-group">
                         <label>Рост (см)</label>
@@ -112,12 +156,37 @@
                         <input type="number" step="0.1" name="weight" value="{{ profile.weight|default:'' }}" class="form-control">
                     </div>
                 </div>
-
-                <button type="submit" class="btn-save">Обновить данные</button>
+                <button type="submit" class="btn-save">Сохранить изменения</button>
+                <button type="button" class="btn-cancel" onclick="showSection('main')">Отмена</button>
             </form>
-
-            <a href="/admin/password_change/" class="change-pass">🔒 Безопасная смена пароля</a>
         </div>
     </div>
+
+    <script>
+        function toggleMenu() {
+            document.getElementById("dropdownMenu").classList.toggle("show");
+        }
+        function showSection(sectionId) {
+            const editSection = document.getElementById('edit-section');
+            const mainCard = document.querySelector('.profile-card'); // Основная карточка
+            
+            if (sectionId === 'edit-section') {
+                editSection.style.display = 'block';
+                editSection.scrollIntoView({ behavior: 'smooth' }); // Плавная прокрутка к форме
+            } else {
+                editSection.style.display = 'none';
+            }
+            toggleMenu(); // Закрываем меню
+        }
+        // Закрытие меню при клике вне его
+        window.onclick = function(event) {
+            if (!event.target.matches('.menu-btn')) {
+                var dropdowns = document.getElementsByClassName("dropdown-content");
+                for (var i = 0; i < dropdowns.length; i++) {
+                    if (dropdowns[i].classList.contains('show')) dropdowns[i].classList.remove('show');
+                }
+            }
+        }
+    </script>
 </body>
 </html>
