@@ -84,6 +84,7 @@ class ActivityType(models.Model):
     name = models.CharField(max_length=100, verbose_name="Упражнение")
     points_per_unit = models.IntegerField(default=10)
     unit_name = models.CharField(max_length=20, verbose_name="Ед. изм.")
+    description = models.TextField(blank=True, verbose_name="Описание упражнения")
 
     def __str__(self):
         if self.category:
