@@ -5,101 +5,113 @@
 <head>
     <title>Fitness App | Главная</title>
     <link rel="stylesheet" href="{% static 'activities/css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'activities/css/themes.css' %}">
     <style>
+        /* Адаптация скролла категорий */
+        .category-scroll-menu { background: var(--card-bg) !important; }
+        .category-scroll-menu::-webkit-scrollbar { width: 6px; }
+        .category-scroll-menu::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
+        .category-scroll-menu::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+        .category-scroll-menu a { color: var(--text-color) !important; border-bottom: 1px solid var(--border-color); }
+        .category-scroll-menu a:hover { background: rgba(0, 123, 255, 0.1); }
+
         .rank-badge-sm {
             display: inline-block;
             background: linear-gradient(135deg, #6e8efb, #a777e3);
-            color: white;
-            padding: 2px 10px;
-            border-radius: 12px;
-            font-size: 0.75em;
-            font-weight: bold;
-            box-shadow: 0 2px 4px rgba(110, 142, 251, 0.2);
+            color: white; padding: 2px 10px; border-radius: 12px;
+            font-size: 0.75em; font-weight: bold;
         }
-        .leaderboard-table th { text-transform: uppercase; letter-spacing: 1px; }
         
-        /* Стили для ленты видео */
-        .feed-card {
-            background: white;
+        /* Карточки ленты и общие карточки */
+        .feed-card, .card {
+            background: var(--card-bg) !important;
+            color: var(--text-color) !important;
+            border: 1px solid var(--border-color) !important;
+            backdrop-filter: blur(10px);
             border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 25px;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-            border: 1px solid #f0f0f0;
         }
-        .feed-video {
-            width: 100%;
-            border-radius: 15px;
-            margin-top: 15px;
-            background: #000;
-            max-height: 500px;
-        }
+
+        .leaderboard-table th { color: var(--text-color); opacity: 0.6; }
+        .leaderboard-table tr { border-bottom: 1px solid var(--border-color) !important; }
+
+        .feed-video { width: 100%; border-radius: 15px; margin-top: 15px; background: #000; max-height: 500px; }
     </style>
 </head>
 
-<body class="bg-light">
+<body>
+    <script>
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        if (currentTheme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    </script>
+
     <div class="container mt-5" style="max-width: 900px; margin: auto; padding: 20px;">
         
         <!-- Шапка -->
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
-            <div>Привет, <strong>{{ request.user.username }}</strong>! 👋</div>
+            <div style="color: var(--text-color);">Привет, <strong>{{ request.user.username }}</strong>! 👋</div>
             <div style="display: flex; gap: 20px; align-items: center;">
                 <a href="{% url 'profile' %}" style="text-decoration: none; color: #007bff; font-weight: 500;">Личный кабинет</a>
+                <button id="theme-toggle" style="background: none; border: none; cursor: pointer; font-size: 1.5em;">
+                    <span id="theme-icon">🌙</span>
+                </button>
                 <a href="{% url 'logout' %}" style="color: #dc3545; text-decoration: none; font-weight: 500;">Выйти</a>
             </div>
         </div>
         
-        <!-- Блок дневной цели с Огоньком -->
-        <div class="card shadow" style="background: white; padding: 25px; border-radius: 20px; margin-bottom: 40px; border: none; position: relative; overflow: hidden;">
-            
-            <!-- Индикатор Страйка -->
+        <!-- Блок дневной цели -->
+        <div class="card shadow" style="padding: 25px; margin-bottom: 40px; position: relative; overflow: hidden; border: none;">
             <div style="position: absolute; top: 15px; right: 20px; text-align: center;">
                 <div style="font-size: 1.8em;">{% if streak > 0 %}🔥{% else %}🌑{% endif %}</div>
-                <div style="font-size: 0.7em; font-weight: bold; color: #666; text-transform: uppercase;">{{ streak }} ДН.</div>
+                <div style="font-size: 0.7em; font-weight: bold; opacity: 0.7; text-transform: uppercase;">{{ streak }} ДН.</div>
             </div>
 
             <div style="margin-bottom: 15px;">
-                <h4 style="margin: 0; color: #333;">🎯 Дневная цель: <strong>{{ today_points }}</strong> / {{ daily_goal }}</h4>
+                <h4 style="margin: 0;">🎯 Дневная цель: <strong>{{ today_points }}</strong> / {{ daily_goal }}</h4>
                 <div style="color: #28a745; font-weight: bold; font-size: 1.2em; margin-top: 5px;">{{ progress_percent }}%</div>
             </div>
             
-            <div style="width: calc(100% - 60px); height: 14px; background: #e9ecef; border-radius: 10px; overflow: hidden;">
-                <div style="width: {{ progress_percent }}%; height: 100%; background: linear-gradient(90deg, #28a745, #34ce57); transition: width 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);"></div>
+            <div style="width: calc(100% - 60px); height: 14px; background: rgba(0,0,0,0.1); border-radius: 10px; overflow: hidden;">
+                <div style="width: {{ progress_percent }}%; height: 100%; background: linear-gradient(90deg, #28a745, #34ce57); transition: width 0.8s ease;"></div>
             </div>
 
-            <p style="margin-top: 15px; color: #555; font-size: 0.95em; padding-right: 50px;">
+            <p style="margin-top: 15px; font-size: 0.95em; padding-right: 50px; opacity: 0.9;">
                 {% if today_points >= daily_goal %}
-                    <span style="color: #28a745; font-weight: bold;">Серия продолжается!</span> Ты держишь темп уже {{ streak }} дн. Не дай огню погаснуть!
+                    <span style="color: #28a745; font-weight: bold;">Серия продолжается!</span> Не дай огню погаснуть!
                 {% else %}
-                    Выполни цель сегодня, чтобы поддержать свой рекорд в <strong>{{ streak }} дн.</strong>
+                    Выполни цель сегодня, чтобы поддержать рекорд в <strong>{{ streak }} дн.</strong>
                 {% endif %}
             </p>
         </div>
 
-            <!-- Полоска прогресса (Зеленая) -->
-            <div style="width: 100%; height: 14px; background: #e9ecef; border-radius: 10px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);">
-                <div style="width: {{ progress_percent }}%; height: 100%; background: linear-gradient(90deg, #28a745, #34ce57); transition: width 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);"></div>
+        <!-- Выбор категорий (Dropdown) -->
+        <div style="max-width: 700px; margin: 0 auto 40px; text-align: center;">
+            <h2 style="margin-bottom: 20px;">Выберите вид спорта</h2>
+            <div class="custom-select-wrapper" style="position: relative; display: inline-block; width: 100%; max-width: 400px; text-align: left;">
+                <div class="select-trigger" onclick="toggleCategoryMenu()" style="background: var(--card-bg); padding: 15px 20px; border-radius: 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color); font-weight: bold; backdrop-filter: blur(10px);">
+                    <span>📋 Все активности</span>
+                    <span id="arrow" style="transition: 0.3s;">▼</span>
+                </div>
+                <div id="categoryDropdown" class="category-scroll-menu" style="display: none; position: absolute; top: 110%; left: 0; width: 100%; z-index: 1000; max-height: 400px; overflow-y: auto; border-radius: 15px;">
+                    {% for cat in categories %}
+                    <a href="{% url 'category_detail' cat.pk %}" style="display: flex; align-items: center; gap: 15px; padding: 12px 20px; text-decoration: none;">
+                        <span style="font-size: 1.5em;">{{ cat.icon }}</span>
+                        <div>
+                            <div style="font-weight: bold;">{{ cat.name }}</div>
+                            <small style="opacity: 0.6;">{{ cat.exercises.count }} упражнений</small>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
             </div>
-
-            <!-- Мотивирующее сообщение -->
-            <p style="margin-top: 15px; color: #555; font-size: 0.95em; line-height: 1.4;">
-                {% if today_points == 0 %}
-                    <strong>{{ request.user.username }}</strong>, ты сегодня еще не занимался? Это не дело! Давай поднажмем 💪
-                {% elif today_points < daily_goal %}
-                    Хорошее начало, <strong>{{ request.user.username }}</strong>! Еще немного до цели! 🔥
-                {% else %}
-                    <span style="color: #28a745; font-weight: bold;">🏆 Цель достигнута!</span> Ты сегодня стал лучше, чем вчера. Продолжай в том же духе!
-                {% endif %}
-            </p>
         </div>
 
         <!-- Глобальный рейтинг -->
         <h2 style="text-align: center; margin-bottom: 20px;">🌍 Глобальный рейтинг</h2>
-        <div class="card shadow" style="background: white; padding: 20px; border-radius: 20px; margin-bottom: 50px; border: none;">
+        <div class="card shadow" style="padding: 20px; margin-bottom: 50px; border: none;">
             <table class="leaderboard-table" style="width: 100%; border-collapse: collapse;">
                 <thead>
-                    <tr style="border-bottom: 2px solid #eee; color: #888; font-size: 0.8em;">
-                        <th style="padding: 15px; text-align: left;">МЕСТО</th>
+                    <tr>
+                        <th style="padding: 15px; text-align: left;">#</th>
                         <th style="padding: 15px; text-align: left;">АТЛЕТ</th>
                         <th style="padding: 15px; text-align: center;">РАНГ</th>
                         <th style="padding: 15px; text-align: right;">СР. МЕСТО</th>
@@ -107,52 +119,19 @@
                 </thead>
                 <tbody>
                     {% for user in global_leaderboard %}
-                    <tr style="border-bottom: 1px solid #f9f9f9; {% if user.username == request.user.username %}background: #f0f7ff;{% endif %}">
-                        <td style="padding: 15px; font-weight: bold;">
-                            {% if forloop.counter == 1 %}🥇{% elif forloop.counter == 2 %}🥈{% elif forloop.counter == 3 %}🥉{% else %}{{ forloop.counter }}{% endif %}
-                        </td>
+                    <tr style="{% if user.username == request.user.username %}background: rgba(0,123,255,0.1);{% endif %}">
+                        <td style="padding: 15px; font-weight: bold;">{{ forloop.counter }}</td>
                         <td style="padding: 15px; display: flex; align-items: center; gap: 12px;">
-                            {% if user.profile.avatar %}
-                                <img src="{{ user.profile.avatar.url }}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover;">
-                            {% else %}
-                                <div style="width: 35px; height: 35px; background: #eee; border-radius: 50%; text-align: center; line-height: 35px; font-size: 16px;">👤</div>
-                            {% endif %}
+                            {% if user.profile.avatar %}<img src="{{ user.profile.avatar.url }}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover;">
+                            {% else %}<div style="width: 35px; height: 35px; background: #eee; border-radius: 50%; text-align: center; line-height: 35px; color: #333;">👤</div>{% endif %}
                             <strong>{{ user.username }}</strong>
                         </td>
-                        <td style="padding: 15px; text-align: center;">
-                            <span class="rank-badge-sm">{{ user.profile.get_global_rank }}</span>
-                        </td>
-                        <td style="padding: 15px; text-align: right;">
-                            <span style="background: #f0f7ff; color: #007bff; padding: 5px 12px; border-radius: 20px; font-weight: bold;">
-                                {{ user.profile.get_average_place }}
-                            </span>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="4" style="text-align: center; padding: 30px; color: #888;">Пока никто не набрал очков. Будь первым!</td>
+                        <td style="padding: 15px; text-align: center;"><span class="rank-badge-sm">{{ user.profile.get_global_rank }}</span></td>
+                        <td style="padding: 15px; text-align: right;"><span style="color: #007bff; font-weight: bold;">{{ user.profile.get_average_place }}</span></td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
-        </div>
-
-        <!-- Сетка категорий -->
-        <h2 style="text-align: center; margin-bottom: 30px;">Выберите вид спорта</h2>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 25px; margin-bottom: 50px;">
-            {% for cat in categories %}
-            <a href="{% url 'category_detail' cat.pk %}" style="text-decoration: none; color: inherit;">
-                <div class="card shadow" style="background: white; padding: 35px; border-radius: 25px; text-align: center; transition: 0.2s; cursor: pointer; border: 1px solid #f0f0f0;">
-                    <div style="font-size: 55px; margin-bottom: 15px;">{{ cat.icon }}</div>
-                    <h3 style="margin: 0; font-size: 1.4em;">{{ cat.name }}</h3>
-                    <div style="margin-top: 10px; color: #007bff; font-weight: bold; font-size: 0.85em; text-transform: uppercase;">
-                        {{ cat.exercises.count }} УПРАЖНЕНИЙ
-                    </div>
-                </div>
-            </a>
-            {% empty %}
-            <div style="grid-column: 1/-1; text-align: center; color: #888;">Категории еще не созданы.</div>
-            {% endfor %}
         </div>
 
         <!-- НОВАЯ СЕКЦИЯ: ЛЕНТА ТРЕНИРОВОК -->
@@ -165,11 +144,11 @@
                     {% if log.user.profile.avatar %}
                         <img src="{{ log.user.profile.avatar.url }}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover;">
                     {% else %}
-                        <div style="width: 45px; height: 45px; background: #eee; border-radius: 50%; text-align: center; line-height: 45px;">👤</div>
+                        <div style="width: 45px; height: 45px; background: rgba(128,128,128,0.2); border-radius: 50%; text-align: center; line-height: 45px;">👤</div>
                     {% endif %}
                     <div>
                         <strong style="display: block; font-size: 1.1em;">{{ log.user.username }}</strong>
-                        <small style="color: #888;">{{ log.created_at|naturaltime }}</small>
+                        <small style="opacity: 0.6;">{{ log.created_at|naturaltime }}</small>
                     </div>
                 </div>
 
@@ -181,26 +160,27 @@
 
                 <!-- 2. Видео -->
                 {% if log.video %}
-                <video class="feed-video" controls>
+                <video class="feed-video" controls preload="metadata">
                     <source src="{{ log.video.url }}" type="video/mp4">
+                    Ваш браузер не поддерживает видео.
                 </video>
                 {% endif %}
 
-                <!-- 3. ЛАЙКИ (ТЕПЕРЬ ВНУТРИ ЦИКЛА) -->
+                <!-- 3. ЛАЙКИ -->
                 <div style="margin-top: 15px; display: flex; align-items: center; gap: 15px;">
-                    <button onclick="likeLog({{ log.id }}, this)" style="background: none; border: none; cursor: pointer;">
-                        <span class="heart">{% if request.user in log.likes.all %}❤️{% else %}🤍{% endif %}</span>
-                        <span class="like-count">{{ log.likes.count }}</span>
+                    <button onclick="likeLog({{ log.id }}, this)" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 5px; padding: 0;">
+                        <span class="heart" style="font-size: 1.2em;">{% if request.user in log.likes.all %}❤️{% else %}🤍{% endif %}</span>
+                        <span class="like-count" style="color: var(--text-color); font-weight: bold; font-size: 0.9em;">{{ log.likes.count }}</span>
                     </button>
-                    <span style="font-size: 0.9em; color: #888;">💬 {{ log.comments.count }}</span>
+                    <span style="font-size: 0.9em; opacity: 0.7;">💬 {{ log.comments.count }}</span>
                 </div>
 
-                <!-- 4. КОММЕНТАРИИ (ТЕПЕРЬ ВНУТРИ ЦИКЛА) -->
-                <div style="margin-top: 15px; border-top: 1px solid #f0f0f0; padding-top: 10px;">
+                <!-- 4. КОММЕНТАРИИ -->
+                <div style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 10px;">
                     <div id="comments-{{ log.id }}" style="max-height: 150px; overflow-y: auto; margin-bottom: 10px;">
                         {% for comment in log.comments.all %}
                             <div style="font-size: 0.85em; margin-bottom: 5px;">
-                                <strong>{{ comment.user.username }}:</strong> {{ comment.text }}
+                                <strong style="color: #007bff;">{{ comment.user.username }}:</strong> {{ comment.text }}
                             </div>
                         {% endfor %}
                     </div>
@@ -208,18 +188,43 @@
                     <form class="comment-form" data-log-id="{{ log.id }}" style="display: flex; gap: 10px;">
                         {% csrf_token %}
                         <input type="text" name="text" placeholder="Написать комментарий..." required 
-                            style="flex: 1; border: 1px solid #eee; border-radius: 20px; padding: 8px 15px; font-size: 0.85em;">
+                            style="flex: 1; border: 1px solid var(--border-color); border-radius: 20px; padding: 8px 15px; font-size: 0.85em; background: rgba(128,128,128,0.1); color: inherit; outline: none;">
                         <button type="submit" style="background: none; border: none; color: #007bff; font-weight: bold; cursor: pointer;">OK</button>
                     </form>
                 </div>
 
             </div> <!-- КОНЕЦ карточки feed-card -->
             {% empty %}
-                <p style="text-align: center; color: #888;">Пока никто не выложил видео.</p>
-            {% endfor %} <!-- КОНЕЦ ЦИКЛА -->
+                <p style="text-align: center; opacity: 0.6; padding: 40px;">Пока никто не выложил видео.</p>
+            {% endfor %}
         </div>
     </div>
     <script>
+        // Логика меню и темы
+        function toggleCategoryMenu() {
+            const menu = document.getElementById('categoryDropdown');
+            const arrow = document.getElementById('arrow');
+            const isOpen = menu.style.display === 'block';
+            menu.style.display = isOpen ? 'none' : 'block';
+            arrow.style.transform = isOpen ? 'rotate(0deg)' : 'rotate(180deg)';
+        }
+
+        const toggleBtn = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        if (localStorage.getItem('theme') === 'dark') themeIcon.innerText = '☀️';
+
+        toggleBtn.addEventListener('click', () => {
+            let theme = document.documentElement.getAttribute('data-theme');
+            if (theme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'light');
+                themeIcon.innerText = '🌙';
+                localStorage.setItem('theme', 'light');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                themeIcon.innerText = '☀️';
+                localStorage.setItem('theme', 'dark');
+            }
+        });
         // Функция для лайков
         function likeLog(logId, btn) {
             fetch(`/like/${logId}/`)

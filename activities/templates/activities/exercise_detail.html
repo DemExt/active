@@ -4,105 +4,62 @@
 <head>
     <title>{{ exercise.name }} | Рекорды</title>
     <link rel="stylesheet" href="{% static 'activities/css/style.css' %}">
+    <link rel="stylesheet" href="{% static 'activities/css/themes.css' %}">
     <style>
         .record-val { background: #e7f3ff; color: #007bff; padding: 5px 15px; border-radius: 20px; font-weight: bold; }
-        .table-header { background: #f8f9fa; border-bottom: 2px solid #dee2e6; }
-        .table-header th { padding: 15px; text-transform: uppercase; font-size: 0.85em; color: #666; letter-spacing: 1px; }
+        /* Адаптация заголовков таблицы под тему */
+        .table-header { background: var(--card-bg); border-bottom: 2px solid var(--border-color); }
+        .table-header th { padding: 15px; text-transform: uppercase; font-size: 0.85em; color: var(--text-color); opacity: 0.7; letter-spacing: 1px; }
     </style>
 </head>
 <body class="bg-light">
+    <script>
+        const currentTheme = localStorage.getItem('theme') || 'light';
+        if (currentTheme === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    </script>
+
     <div class="container mt-5" style="max-width: 800px; margin: auto; padding: 20px;">
-        <a href="{% url 'category_detail' exercise.category.pk %}" style="text-decoration: none; color: #007bff;">← Назад к {{ exercise.category.name }}</a>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <a href="{% url 'category_detail' exercise.category.pk %}" style="text-decoration: none; color: #007bff;">← Назад к {{ exercise.category.name }}</a>
+            <button id="theme-toggle" style="background: none; border: none; cursor: pointer; font-size: 1.2em;">
+                <span id="theme-icon">🌙</span>
+            </button>
+        </div>
         
         <h1 style="margin-top: 20px;">{{ exercise.name }}</h1>
-        <p style="color: #666;">Единица измерения: <strong>{{ exercise.unit_name }}</strong></p>
+        <p style="opacity: 0.8;">Единица измерения: <strong>{{ exercise.unit_name }}</strong></p>
 
+        <!-- Описание упражнения -->
         {% if exercise.description %}
-        <div class="card shadow-sm" style="background: #f8f9fa; padding: 20px; border-radius: 15px; margin-bottom: 25px; border-left: 5px solid #007bff;">
-            <h5 style="margin-top: 0; color: #007bff; display: flex; align-items: center; gap: 8px;">
-                📝 Инструкция / Комплекс:
-            </h5>
-            <p style="white-space: pre-line; color: #444; line-height: 1.6; margin-bottom: 0; font-size: 0.95em;">
-                {{ exercise.description }}
-            </p>
-        </div>
-        {% endif %}
-
-        <!-- БЛОК ТАЙМЕРА -->
-        <div class="card shadow-sm" style="background: #212529; color: white; padding: 20px; border-radius: 15px; margin-bottom: 25px; text-align: center;">
-            <h5 style="margin-top: 0; color: #ffc107;">⏱ CrossFit Timer</h5>
-            
-            <div style="margin-bottom: 10px;">
-                <label style="font-size: 0.8em; color: #aaa;">Лимит (минут):</label>
-                <input type="number" id="timeCapInput" value="10" style="width: 60px; background: #333; color: white; border: 1px solid #444; border-radius: 5px; text-align: center;">
-            </div>
-
-            <div id="display" style="font-size: 3.5em; font-family: monospace; font-weight: bold; margin: 10px 0; color: #fff;">
-                00:00.00
-            </div>
-
-            <div id="countdown-text" style="height: 20px; color: #ffc107; font-weight: bold; margin-bottom: 10px;"></div>
-
-            <div style="display: flex; gap: 10px; justify-content: center;">
-                <button id="startBtn" onclick="initStart()" style="background: #28a745; color: white; border: none; padding: 10px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; flex: 1;">СТАРТ</button>
-                <button id="resetBtn" onclick="reset()" style="background: #6c757d; color: white; border: none; padding: 10px 25px; border-radius: 8px; font-weight: bold; cursor: pointer;">СБРОС</button>
-            </div>
-        </div>
-
-        <!-- Блок Квеста (если есть) -->
-        {% if quest %}
-        <div class="card" style="background: #fff3cd; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #ffeeba;">
-            <h4 style="margin: 0 0 10px 0;">🎯 Задание: {{ quest.title }}</h4>
-            <div style="font-size: 0.9em;">
-                Прогресс за сегодня: <strong>{{ quest.done }}</strong> / {{ quest.required }}
-                {% if quest.done >= quest.required %}<span style="color: green; font-weight: bold; margin-left: 10px;">✅ ВЫПОЛНЕНО!</span>{% endif %}
-            </div>
+        <div class="card shadow-sm" style="padding: 20px; border-radius: 15px; margin-bottom: 25px; border-left: 5px solid #007bff; background: var(--card-bg);">
+            <h5 style="margin-top: 0; color: #007bff;">📝 Описание / Комплекс:</h5>
+            <p style="white-space: pre-line; line-height: 1.5; margin-bottom: 0;">{{ exercise.description }}</p>
         </div>
         {% endif %}
 
         <!-- Форма записи результата -->
-        <div class="card shadow" style="background: white; padding: 25px; border-radius: 15px; margin-bottom: 40px; border: 2px solid #007bff;">
+        <div class="card shadow" style="padding: 25px; border-radius: 15px; margin-bottom: 40px; border: 2px solid #007bff; background: var(--card-bg);">
             <h3 style="margin-top: 0;">💪 Записать новый подход</h3>
             <form action="{% url 'web_log_create' %}" method="POST" enctype="multipart/form-data">
                 {% csrf_token %}
                 <input type="hidden" name="activity_type" value="{{ exercise.id }}">
                 <div style="margin-bottom: 15px;">
                     <label>Результат ({{ exercise.unit_name }}):</label>
-                    <input type="number" name="quantity" required style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; margin-top: 5px; font-size: 1.1em;">
+                    <input type="number" name="quantity" required style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); margin-top: 5px; font-size: 1.1em; background: rgba(255,255,255,0.1); color: inherit;">
                 </div>
                 <div style="margin-bottom: 15px;">
-                    <label>Видео подтверждение (необязательно):</label>
+                    <label>Видео подтверждение:</label>
                     <input type="file" name="video" accept="video/*" style="width: 100%; padding: 8px; font-size: 0.9em;">
                 </div>
-                <button type="submit" class="btn" style="background: #28a745; color: white; border: none; padding: 14px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1em;">
-                    СОХРАНИТЬ РЕЗУЛЬТАТ
-                </button>
+                <button type="submit" class="btn" style="background: #28a745; color: white; border: none; padding: 14px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer;">СОХРАНИТЬ</button>
             </form>
         </div>
 
-        <!-- Ваши последние подходы (с кнопкой ОТМЕНЫ) -->
-        <div style="margin-bottom: 40px;">
-            <h4>Ваши последние записи:</h4>
-            {% for log in user_logs %}
-            <div style="background: #fff; padding: 12px; border-radius: 10px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #eee;">
-                <span>
-                    <strong>{{ log.quantity }}</strong> {{ exercise.unit_name }} 
-                    <small style="color: #888; margin-left: 10px;">{{ log.created_at|date:"H:i" }}</small>
-                    {% if log.video %} <a href="{{ log.video.url }}" target="_blank" style="margin-left: 10px; font-size: 0.85em;">📽 Видео</a> {% endif %}
-                </span>
-                <form action="{% url 'delete_log' log.pk %}" method="POST" style="margin: 0;">
-                    {% csrf_token %}
-                    <button type="submit" style="background: #fff1f0; border: 1px solid #ffa39e; color: #cf1322; padding: 5px 10px; border-radius: 5px; cursor: pointer;" onclick="return confirm('Удалить эту запись?')">Отменить</button>
-                </form>
-            </div>
-            {% empty %}
-            <p style="color: #888;">Здесь будут ваши последние результаты.</p>
-            {% endfor %}
-        </div>
-
-        <!-- ЛИДЕРБОРД УПРАЖНЕНИЯ -->
-        <h3 style="margin-bottom: 15px;">🏆 Доска рекордов: {{ exercise.name }}</h3>
-        <div class="card shadow" style="background: white; padding: 0; border-radius: 15px; overflow: hidden; border: none;">
+        <!-- ЛИДЕРБОРД -->
+        <h3 style="margin-bottom: 15px;">🏆 Доска рекордов</h3>
+        <div class="card shadow" style="padding: 0; border-radius: 15px; overflow: hidden; border: none; background: var(--card-bg);">
             <table style="width: 100%; border-collapse: collapse;">
                 <thead class="table-header">
                     <tr>
@@ -113,28 +70,23 @@
                 </thead>
                 <tbody>
                     {% for log in leaderboard %}
-                    <tr style="border-bottom: 1px solid #eee; {% if log.user == request.user %}background: #f0f7ff;{% endif %}">
+                    <tr style="border-bottom: 1px solid var(--border-color); {% if log.user == request.user %}background: rgba(0,123,255,0.1);{% endif %}">
                         <td style="padding: 15px; font-weight: bold;">{{ forloop.counter }}</td>
                         <td style="padding: 15px; display: flex; align-items: center; gap: 10px;">
                             {% if log.user.profile.avatar %}
                                 <img src="{{ log.user.profile.avatar.url }}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover;">
                             {% else %}
-                                <div style="width: 35px; height: 35px; background: #eee; border-radius: 50%; text-align: center; line-height: 35px;">👤</div>
+                                <div style="width: 35px; height: 35px; background: #eee; border-radius: 50%; text-align: center; line-height: 35px; color: #333;">👤</div>
                             {% endif %}
                             <strong>{{ log.user.username }}</strong>
                         </td>
                         <td style="padding: 15px; text-align: right;">
                             {% if log.video %}
-                                <!-- Если есть видео, делаем результат ссылкой-кнопкой -->
-                                <a href="{{ log.video.url }}" target="_blank" title="Смотреть видео подтверждение" 
-                                   style="text-decoration: none; background: #28a745; color: white; padding: 5px 12px; border-radius: 15px; font-weight: bold; font-size: 0.9em;">
-                                    🎬 {{ log.quantity }} {{ exercise.unit_name }}
-                                </a>
+                                <a href="{{ log.video.url }}" target="_blank" style="text-decoration: none; background: #28a745; color: white; padding: 5px 12px; border-radius: 15px; font-weight: bold; font-size: 0.9em;">🎬 {{ log.quantity }}</a>
                             {% else %}
-                                <!-- Если видео нет, просто число -->
                                 <span class="record-val">{{ log.quantity }} {{ exercise.unit_name }}</span>
                             {% endif %}
-                            <div style="font-size: 0.7em; color: #888; margin-top: 4px;">{{ log.created_at|date:"d.m.Y" }}</div>
+                            <div style="font-size: 0.7em; opacity: 0.6; margin-top: 4px;">{{ log.created_at|date:"d.m.Y" }}</div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -142,105 +94,26 @@
             </table>
         </div>
     </div>
-    
+
+    <!-- Обработчик темы -->
     <script>
-        let startTime;
-        let elapsedTime = 0;
-        let timerInterval;
-        let timeCapMs = 0;
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const toggleBtn = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        if (localStorage.getItem('theme') === 'dark' && themeIcon) themeIcon.innerText = '☀️';
 
-        function playBeep(frequency = 880, duration = 0.1) {
-            // Если контекст "спит" (защита браузера), пробуждаем его
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-
-            const oscillator = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-
-            oscillator.type = 'square'; // Тип волны: 'square' звучит как спортивное табло
-            oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime); // Частота в Гц
-            
-            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // Громкость
-            gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
-
-            oscillator.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + duration);
-        }
-
-        function timeToString(time) {
-            let mm = Math.floor(time / 60000);
-            let ss = Math.floor((time % 60000) / 1000);
-            let ms = Math.floor((time % 1000) / 10);
-            return `${mm.toString().padStart(2, "0")}:${ss.toString().padStart(2, "0")}.${ms.toString().padStart(2, "0")}`;
-        }
-
-        function initStart() {
-            let btn = document.getElementById("startBtn");
-            if (btn.innerHTML !== "СТАРТ") {
-                clearInterval(timerInterval);
-                btn.innerHTML = "СТАРТ";
-                btn.style.background = "#28a745";
-                return;
-            }
-
-            let countdown = 10;
-            let capMinutes = document.getElementById("timeCapInput").value;
-            timeCapMs = capMinutes * 60 * 1000;
-            
-            btn.disabled = true;
-            let cdInterval = setInterval(() => {
-                document.getElementById("countdown-text").innerHTML = `СТАРТ ЧЕРЕЗ: ${countdown}`;
-                if (countdown <= 3 && countdown > 0) playBeep();
-                
-                if (countdown <= 0) {
-                    clearInterval(cdInterval);
-                    document.getElementById("countdown-text").innerHTML = "WORK!";
-                    playBeep(1200, 0.5); // Финальный сигнал старта
-                    startTimer();
-                    btn.disabled = false;
-                    btn.innerHTML = "СТОП";
-                    btn.style.background = "#dc3545";
-                }
-                countdown--;
-            }, 1000);
-        }
-
-        function startTimer() {
-            startTime = Date.now();
-            timerInterval = setInterval(() => {
-                elapsedTime = Date.now() - startTime;
-                
-                // Проверка Time Cap (за 3 сек до конца — писк)
-                let remaining = timeCapMs - elapsedTime;
-                if (remaining <= 3000 && remaining > 2950) playBeep();
-                if (remaining <= 2000 && remaining > 1950) playBeep();
-                if (remaining <= 1000 && remaining > 950) playBeep();
-
-                if (elapsedTime >= timeCapMs) {
-                    clearInterval(timerInterval);
-                    document.getElementById("display").innerHTML = timeToString(timeCapMs);
-                    document.getElementById("countdown-text").innerHTML = "TIME CAP!";
-                    playBeep();
-                    document.getElementById("startBtn").innerHTML = "СТАРТ";
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                let theme = document.documentElement.getAttribute('data-theme');
+                if (theme === 'dark') {
+                    document.documentElement.setAttribute('data-theme', 'light');
+                    themeIcon.innerText = '🌙';
+                    localStorage.setItem('theme', 'light');
                 } else {
-                    document.getElementById("display").innerHTML = timeToString(elapsedTime);
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    themeIcon.innerText = '☀️';
+                    localStorage.setItem('theme', 'dark');
                 }
-            }, 10);
-        }
-
-        function reset() {
-            clearInterval(timerInterval);
-            elapsedTime = 0;
-            document.getElementById("display").innerHTML = "00:00.00";
-            document.getElementById("countdown-text").innerHTML = "";
-            document.getElementById("startBtn").innerHTML = "СТАРТ";
-            document.getElementById("startBtn").style.background = "#28a745";
-            document.getElementById("startBtn").disabled = false;
+            });
         }
     </script>
 </body>

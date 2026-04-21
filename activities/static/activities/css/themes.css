@@ -1,0 +1,32 @@
+:root {
+    /* Светлая тема (по умолчанию) */
+    /* --bg-image: url("../images/view-gym-room-training-sports_23-2151699499.jpg.avif");*/
+    --card-bg: rgba(255, 255, 255, 0.9);
+    --text-color: #333;
+    --border-color: #eee;
+}
+
+[data-theme="dark"] {
+    /* Темная тема 
+    --bg-image: url("../images/cartoon-machines-gym_23-2151148944.jpg.avif");*/
+    --card-bg: rgba(20, 20, 20, 0.85);
+    --text-color: #f5f5f5;
+    --border-color: #444;
+}
+
+body {
+    background-image: var(--bg-image);
+    background-attachment: fixed;
+    background-size: cover;
+    background-position: center;
+    color: var(--text-color);
+    transition: all 0.3s ease;
+}
+
+/* Применяем переменные к карточкам */
+.card, .feed-card, .profile-card, .modal-content-custom {
+    background: var(--card-bg) !important;
+    color: var(--text-color) !important;
+    border: 1px solid var(--border-color) !important;
+    backdrop-filter: blur(10px); /* Эффект матового стекла */
+}
