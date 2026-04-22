@@ -1,4 +1,3 @@
-
 body { font-family: system-ui, sans-serif; background: #f8f9fa; color: #212529; }
 .container { max-width: 800px; margin: 50px auto; padding: 20px; }
 .card { background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 20px; }
@@ -6,3 +5,14 @@ body { font-family: system-ui, sans-serif; background: #f8f9fa; color: #212529; 
 .table th, .table td { padding: 12px; border-bottom: 1px solid #dee2e6; text-align: left; }
 .table-primary { background-color: #cfe2ff; }
 .btn-success { background: #198754; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; }
+.btn, .btn-save, .menu-btn, .select-trigger {
+    min-height: 48px; /* Минимальный размер для удобного нажатия пальцем */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.1s active;
+}
+
+.btn:active, .btn-save:active {
+    transform: scale(0.98); /* Эффект легкого проседания при клике */
+}

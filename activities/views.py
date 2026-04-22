@@ -11,8 +11,9 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import OuterRef, Subquery, Count
+from django.contrib import messages
 
-from .models import ActivityType, UserActivityLog, DailyQuest, UserProfile, ActivityCategory, Like, Comment
+from .models import ActivityType, UserActivityLog, DailyQuest, UserProfile, ActivityCategory, Like, Comment, Notification
 from .serializers import ActivityLogSerializer
 
 # --- ГЛАВНЫЕ СТРАНИЦЫ ---
@@ -245,27 +246,34 @@ class ActivityLogCreateView(APIView):
     
 @login_required
 def delete_log_view(request, pk):
-    # Ищем лог, который принадлежит именно текущему пользователю
+    # Ищем лог, который принадлежит именно этому пользователю
     log = get_object_or_404(UserActivityLog, pk=pk, user=request.user)
     
-    if request.method == "POST":
-        exercise_id = log.activity_type.id
+    if request.method == 'POST':
+        activity_id = log.activity_type.id # Запоминаем ID упражнения для возврата
         log.delete()
-        # Возвращаем пользователя на страницу упражнения
-        return redirect('exercise_detail', pk=exercise_id)
-    
+        messages.success(request, "Запись успешно удалена")
+        return redirect('exercise_detail', pk=activity_id)
+        
     return redirect('home')
 
 @login_required
 def toggle_like(request, log_id):
     log = get_object_or_404(UserActivityLog, id=log_id)
     like, created = Like.objects.get_or_create(user=request.user, log=log)
-    
-    if not created:
+
+    if created: 
+        if log.user != request.user:
+            Notification.objects.create(
+                recipient=log.user,
+                sender=request.user,
+                notification_type='like',
+                log=log
+            )
+        liked = True
+    else:
         like.delete()
         liked = False
-    else:
-        liked = True
     
     return JsonResponse({'liked': liked, 'count': log.likes.count()})
 
@@ -276,9 +284,41 @@ def add_comment(request, log_id):
         text = request.POST.get('text')
         if text:
             comment = Comment.objects.create(user=request.user, log=log, text=text)
+            
+            if log.user != request.user:
+                Notification.objects.create(
+                    recipient=log.user,
+                    sender=request.user,
+                    notification_type='comment',
+                    log=log
+                )
+                
             return JsonResponse({
                 'status': 'ok',
                 'username': comment.user.username,
                 'text': comment.text
             })
     return JsonResponse({'status': 'error'}, status=400)
+
+@login_required
+def mark_notifications_read(request):
+    request.user.notifications.filter(is_read=False).update(is_read=True)
+    return JsonResponse({'status': 'ok'})
+
+@login_required
+def get_notifications(request):
+    notifications = request.user.notifications.all().order_by('-created_at')[:10]
+    unread_count = request.user.notifications.filter(is_read=False).count()
+    
+    data = []
+    for n in notifications:
+        data.append({
+            'id': n.id,
+            'sender': n.sender.username,
+            'type': n.notification_type,
+            'log_name': n.log.activity_type.name,
+            'is_read': n.is_read,
+            'time': "только что" # В идеале передать naturaltime, но для теста так
+        })
+    
+    return JsonResponse({'notifications': data, 'unread_count': unread_count})

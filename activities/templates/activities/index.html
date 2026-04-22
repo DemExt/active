@@ -4,6 +4,7 @@
 <html>
 <head>
     <title>Fitness App | Главная</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="{% static 'activities/css/style.css' %}">
     <link rel="stylesheet" href="{% static 'activities/css/themes.css' %}">
     <style>
@@ -54,6 +55,24 @@
                 <button id="theme-toggle" style="background: none; border: none; cursor: pointer; font-size: 1.5em;">
                     <span id="theme-icon">🌙</span>
                 </button>
+                <div class="notification-container" style="position: relative; margin-right: 15px;">
+                    <button onclick="toggleNotifications()" style="background: none; border: none; cursor: pointer; font-size: 1.4em; position: relative;">
+                        🔔
+                        <!-- ID 'unread-badge' для обновлений из JS -->
+                        <span id="unread-badge" style="display: none; position: absolute; top: -5px; right: -5px; background: #dc3545; color: white; border-radius: 50%; padding: 2px 6px; font-size: 0.6em; font-weight: bold;">
+                            0
+                        </span>
+                    </button>
+                    
+                    <!-- Выпадающий список (содержимое) -->
+                    <div id="notification-dropdown" class="card shadow" style="display: none; position: absolute; top: 40px; right: 0; width: 280px; z-index: 1000; max-height: 400px; overflow-y: auto; background: var(--card-bg); border-radius: 15px; padding: 10px;">
+                        <h5 style="margin: 10px; font-size: 0.9em; opacity: 0.7;">Уведомления</h5>
+                        <div id="notification-list">
+                            <!-- Сюда JS будет вставлять новые уведомления -->
+                        </div>
+                        <button onclick="markAsRead()" style="width: 100%; background: none; border: none; color: #007bff; font-size: 0.8em; padding: 10px; cursor: pointer;">Прочитано</button>
+                    </div>
+                </div>
                 <a href="{% url 'logout' %}" style="color: #dc3545; text-decoration: none; font-weight: 500;">Выйти</a>
             </div>
         </div>
@@ -85,7 +104,7 @@
 
         <!-- Выбор категорий (Dropdown) -->
         <div style="max-width: 700px; margin: 0 auto 40px; text-align: center;">
-            <h2 style="margin-bottom: 20px;">Выберите вид спорта</h2>
+            <h2 style="margin-bottom: 20px;">Выберите вид активности</h2>
             <div class="custom-select-wrapper" style="position: relative; display: inline-block; width: 100%; max-width: 400px; text-align: left;">
                 <div class="select-trigger" onclick="toggleCategoryMenu()" style="background: var(--card-bg); padding: 15px 20px; border-radius: 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color); font-weight: bold; backdrop-filter: blur(10px);">
                     <span>📋 Все активности</span>
@@ -141,11 +160,20 @@
             <div class="feed-card">
                 <!-- Автор поста -->
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
-                    {% if log.user.profile.avatar %}
-                        <img src="{{ log.user.profile.avatar.url }}" style="width: 45px; height: 45px; border-radius: 50%; object-fit: cover;">
-                    {% else %}
-                        <div style="width: 45px; height: 45px; background: rgba(128,128,128,0.2); border-radius: 50%; text-align: center; line-height: 45px;">👤</div>
-                    {% endif %}
+                    <!-- Контейнер для аватарки и точки -->
+                    <div style="position: relative; width: 45px; height: 45px;">
+                        {% if log.user.profile.avatar %}
+                            <img src="{{ log.user.profile.avatar.url }}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                        {% else %}
+                            <div style="width: 100%; height: 100%; background: rgba(128,128,128,0.2); border-radius: 50%; text-align: center; line-height: 45px;">👤</div>
+                        {% endif %}
+
+                        <!-- ЗЕЛЕНАЯ ТОЧКА (индикатор онлайн) -->
+                        {% if log.user.profile.is_online %}
+                            <span style="position: absolute; bottom: 1px; right: 1px; width: 12px; height: 12px; background: #28a745; border: 2px solid var(--card-bg); border-radius: 50%;" title="В сети"></span>
+                        {% endif %}
+                    </div>
+
                     <div>
                         <strong style="display: block; font-size: 1.1em;">{{ log.user.username }}</strong>
                         <small style="opacity: 0.6;">{{ log.created_at|naturaltime }}</small>
@@ -225,6 +253,15 @@
                 localStorage.setItem('theme', 'dark');
             }
         });
+        function toggleNotifications() {
+            const dropdown = document.getElementById('notification-dropdown');
+            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function markAsRead() {
+            fetch('/notifications/read/') // Нужно будет создать такой URL и View
+            .then(() => location.reload());
+        }
         // Функция для лайков
         function likeLog(logId, btn) {
             fetch(`/like/${logId}/`)
@@ -235,6 +272,50 @@
                 })
                 .catch(error => console.error('Ошибка:', error));
         }
+
+        function updateNotifications() {
+            fetch('/notifications/get/')
+                .then(response => response.json())
+                .then(data => {
+                    const badge = document.getElementById('unread-badge');
+                    const list = document.getElementById('notification-list');
+                    
+                    // 1. Обновляем красную точку
+                    if (data.unread_count > 0) {
+                        badge.innerText = data.unread_count;
+                        badge.style.display = 'block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+
+                    // 2. Обновляем список (если меню открыто или пустое)
+                    list.innerHTML = '';
+                    data.notifications.forEach(n => {
+                        const item = document.createElement('div');
+                        item.style.padding = '10px';
+                        item.style.borderBottom = '1px solid var(--border-color)';
+                        item.style.fontSize = '0.85em';
+                        if (!n.is_read) item.style.background = 'rgba(0,123,255,0.05)';
+                        
+                        let text = n.type === 'like' ? '❤️ поставил лайк' : '💬 прокомментировал';
+                        item.innerHTML = `<strong>${n.sender}</strong> ${text} <strong>${n.log_name}</strong>`;
+                        list.appendChild(item);
+                    });
+                });
+        }
+
+        // Запускаем проверку при загрузке и каждые 30 сек
+        updateNotifications();
+        setInterval(updateNotifications, 30000);
+
+        function markAsRead() {
+            fetch('/notifications/read/')
+                .then(() => {
+                    document.getElementById('unread-badge').style.display = 'none';
+                    updateNotifications();
+                });
+        }
+
         document.querySelectorAll('.comment-form').forEach(form => {
             form.addEventListener('submit', function(e) {
                 e.preventDefault(); // Отменяем перезагрузку страницы

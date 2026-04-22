@@ -7,7 +7,7 @@ from activities.views import (
     index_view, category_detail_view, exercise_detail_view,
     profile_view, register_view, login_view, logout_view, delete_log_view,
     web_log_create, leaderboard_view, user_stats_view, ActivityLogCreateView,
-    toggle_like, add_comment
+    toggle_like, add_comment, get_notifications, mark_notifications_read
 )
 
 urlpatterns = [
@@ -23,9 +23,11 @@ urlpatterns = [
     path('leaderboard/', leaderboard_view),
     path('stats/<str:username>/', user_stats_view),
     path('logs/create/', ActivityLogCreateView.as_view()),
-    path('log/delete/<int:pk>/', delete_log_view, name='delete_log'),
+    path('delete-log/<int:pk>/', delete_log_view, name='delete_log'),
     path('like/<int:log_id>/', toggle_like, name='toggle_like'),
     path('comment/<int:log_id>/', add_comment, name='add_comment'),
+    path('notifications/read/', mark_notifications_read, name='mark_notifications_read'),
+    path('notifications/get/', get_notifications, name='get_notifications'),
     path('password_change/', auth_views.PasswordChangeView.as_view(template_name='activities/password_change.html'), name='password_change'),
     path('password_change/done/', auth_views.PasswordChangeDoneView.as_view(template_name='activities/password_change_done.html'), name='password_change_done'),
 ]

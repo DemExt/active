@@ -3,6 +3,7 @@
 <html>
 <head>
     <title>{{ exercise.name }} | Рекорды</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="{% static 'activities/css/style.css' %}">
     <link rel="stylesheet" href="{% static 'activities/css/themes.css' %}">
     <style>
@@ -12,7 +13,7 @@
         .table-header th { padding: 15px; text-transform: uppercase; font-size: 0.85em; color: var(--text-color); opacity: 0.7; letter-spacing: 1px; }
     </style>
 </head>
-<body class="bg-light">
+<body class="">
     <script>
         const currentTheme = localStorage.getItem('theme') || 'light';
         if (currentTheme === 'dark') {
@@ -39,6 +40,28 @@
         </div>
         {% endif %}
 
+        <!-- БЛОК ТАЙМЕРА -->
+        <div class="card shadow-sm" style="background: #212529; color: white; padding: 20px; border-radius: 15px; margin-bottom: 25px; text-align: center;">
+            <h5 style="margin-top: 0; color: #ffc107;">⏱ CrossFit Timer</h5>
+            
+            <div style="margin-bottom: 10px;">
+                <label style="font-size: 0.8em; color: #aaa;">Лимит (минут):</label>
+                <input type="number" id="timeCapInput" value="10" style="width: 60px; background: #333; color: white; border: 1px solid #444; border-radius: 5px; text-align: center;">
+            </div>
+
+            <div id="display" style="font-size: 3.5em; font-family: monospace; font-weight: bold; margin: 10px 0; color: #fff;">
+                00:00.00
+            </div>
+
+            <div id="countdown-text" style="height: 20px; color: #ffc107; font-weight: bold; margin-bottom: 10px;"></div>
+
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button id="startBtn" onclick="initStart()" style="background: #28a745; color: white; border: none; padding: 10px 25px; border-radius: 8px; font-weight: bold; cursor: pointer; flex: 1;">СТАРТ</button>
+                <button id="resetBtn" onclick="reset()" style="background: #6c757d; color: white; border: none; padding: 10px 25px; border-radius: 8px; font-weight: bold; cursor: pointer;">СБРОС</button>
+            </div>
+        </div>
+
+
         <!-- Форма записи результата -->
         <div class="card shadow" style="padding: 25px; border-radius: 15px; margin-bottom: 40px; border: 2px solid #007bff; background: var(--card-bg);">
             <h3 style="margin-top: 0;">💪 Записать новый подход</h3>
@@ -55,6 +78,32 @@
                 </div>
                 <button type="submit" class="btn" style="background: #28a745; color: white; border: none; padding: 14px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer;">СОХРАНИТЬ</button>
             </form>
+        </div>
+
+        <!-- Ваши последние подходы -->
+        <div style="margin-bottom: 40px;">
+            <h4 style="margin-bottom: 15px;">Ваши последние записи:</h4>
+            {% for log in user_logs %}
+            <div class="card" style="padding: 12px 20px; border-radius: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; background: var(--card-bg); border: 1px solid var(--border-color);">
+                <span>
+                    <strong style="color: #28a745;">{{ log.quantity }}</strong> 
+                    <small style="opacity: 0.7;">{{ exercise.unit_name }} — {{ log.created_at|date:"H:i" }}</small>
+                    {% if log.video %} <small style="margin-left: 10px; opacity: 0.6;">📽 Видео</small> {% endif %}
+                </span>
+                
+                <!-- КНОПКА УДАЛЕНИЯ -->
+                <form action="{% url 'delete_log' log.pk %}" method="POST" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" 
+                            style="background: rgba(220, 53, 69, 0.1); border: 1px solid rgba(220, 53, 69, 0.2); color: #dc3545; padding: 5px 12px; border-radius: 8px; cursor: pointer; font-size: 0.85em; font-weight: bold;" 
+                            onclick="return confirm('Удалить эту запись?')">
+                        Отменить
+                    </button>
+                </form>
+            </div>
+            {% empty %}
+            <p style="opacity: 0.5; font-style: italic;">Записей за сегодня пока нет.</p>
+            {% endfor %}
         </div>
 
         <!-- ЛИДЕРБОРД -->
@@ -114,6 +163,104 @@
                     localStorage.setItem('theme', 'dark');
                 }
             });
+        }
+        let startTime;
+        let elapsedTime = 0;
+        let timerInterval;
+        let timeCapMs = 0;
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playBeep(frequency = 880, duration = 0.1) {
+            // Если контекст "спит" (защита браузера), пробуждаем его
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.type = 'square'; // Тип волны: 'square' звучит как спортивное табло
+            oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime); // Частота в Гц
+            
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); // Громкость
+            gainNode.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + duration);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + duration);
+        }
+
+        function timeToString(time) {
+            let mm = Math.floor(time / 60000);
+            let ss = Math.floor((time % 60000) / 1000);
+            let ms = Math.floor((time % 1000) / 10);
+            return `${mm.toString().padStart(2, "0")}:${ss.toString().padStart(2, "0")}.${ms.toString().padStart(2, "0")}`;
+        }
+
+        function initStart() {
+            let btn = document.getElementById("startBtn");
+            if (btn.innerHTML !== "СТАРТ") {
+                clearInterval(timerInterval);
+                btn.innerHTML = "СТАРТ";
+                btn.style.background = "#28a745";
+                return;
+            }
+
+            let countdown = 10;
+            let capMinutes = document.getElementById("timeCapInput").value;
+            timeCapMs = capMinutes * 60 * 1000;
+            
+            btn.disabled = true;
+            let cdInterval = setInterval(() => {
+                document.getElementById("countdown-text").innerHTML = `СТАРТ ЧЕРЕЗ: ${countdown}`;
+                if (countdown <= 3 && countdown > 0) playBeep();
+                
+                if (countdown <= 0) {
+                    clearInterval(cdInterval);
+                    document.getElementById("countdown-text").innerHTML = "WORK!";
+                    playBeep(1200, 0.5); // Финальный сигнал старта
+                    startTimer();
+                    btn.disabled = false;
+                    btn.innerHTML = "СТОП";
+                    btn.style.background = "#dc3545";
+                }
+                countdown--;
+            }, 1000);
+        }
+
+        function startTimer() {
+            startTime = Date.now();
+            timerInterval = setInterval(() => {
+                elapsedTime = Date.now() - startTime;
+                
+                // Проверка Time Cap (за 3 сек до конца — писк)
+                let remaining = timeCapMs - elapsedTime;
+                if (remaining <= 3000 && remaining > 2950) playBeep();
+                if (remaining <= 2000 && remaining > 1950) playBeep();
+                if (remaining <= 1000 && remaining > 950) playBeep();
+
+                if (elapsedTime >= timeCapMs) {
+                    clearInterval(timerInterval);
+                    document.getElementById("display").innerHTML = timeToString(timeCapMs);
+                    document.getElementById("countdown-text").innerHTML = "TIME CAP!";
+                    playBeep();
+                    document.getElementById("startBtn").innerHTML = "СТАРТ";
+                } else {
+                    document.getElementById("display").innerHTML = timeToString(elapsedTime);
+                }
+            }, 10);
+        }
+
+        function reset() {
+            clearInterval(timerInterval);
+            elapsedTime = 0;
+            document.getElementById("display").innerHTML = "00:00.00";
+            document.getElementById("countdown-text").innerHTML = "";
+            document.getElementById("startBtn").innerHTML = "СТАРТ";
+            document.getElementById("startBtn").style.background = "#28a745";
+            document.getElementById("startBtn").disabled = false;
         }
     </script>
 </body>

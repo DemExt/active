@@ -1,6 +1,6 @@
 :root {
     /* Светлая тема (по умолчанию) */
-    /* --bg-image: url("../images/view-gym-room-training-sports_23-2151699499.jpg.avif");*/
+    --bg-image: url("../images/light.jpg.avif");
     --card-bg: rgba(255, 255, 255, 0.9);
     --text-color: #333;
     --border-color: #eee;

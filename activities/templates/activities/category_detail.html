@@ -3,11 +3,12 @@
 <html>
 <head>
     <title>{{ category.name }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link rel="stylesheet" href="{% static 'activities/css/style.css' %}">
     <link rel="stylesheet" href="{% static 'activities/css/themes.css' %}">
 </head>
 
-<body class="bg-light">
+<body class="">
     <!-- 1. Скрипт защиты от "моргания" темы -->
     <script>
         const currentTheme = localStorage.getItem('theme') || 'light';
