@@ -149,8 +149,11 @@
             <div class="fav-activities">
                 <h4 style="text-align: left; margin-bottom: 10px;">🔥 Часто выполняемые</h4>
                 {% for activity in favorite_activities %}
-                    <div class="activity-item"><span>{{ activity.activity_type__name }}</span><span class="activity-count" style="color:#007bff; font-weight:bold;">{{ activity.total_count }} раз</span></div>
-                {% empty %}<p style="opacity: 0.5; font-size: 0.8em;">Нет данных</p>{% endfor %}
+                    <a href="{% url 'exercise_detail' activity.activity_type__id %}" class="activity-item">
+                        <span>{{ activity.activity_type__name }}</span>
+                        <span style="color:#007bff; font-weight:bold;">{{ activity.total_count }} раз</span>
+                    </a>
+                {% endfor %}
             </div>
         </div>
 

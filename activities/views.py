@@ -115,6 +115,8 @@ def category_detail_view(request, pk):
 @login_required(login_url='login')
 def exercise_detail_view(request, pk):
     exercise = get_object_or_404(ActivityType, pk=pk)
+    # Проверяем, смотрим ли мы страницу через чей-то профиль
+    view_username = request.GET.get('view_user')
     # Сложный запрос: выбираем лучшие логи для каждого уникального пользователя
     # Мы берем последние записи, сгруппированные по юзеру, где количество максимально
 
@@ -135,8 +137,14 @@ def exercise_detail_view(request, pk):
     ).select_related('user', 'user__profile').order_by('-quantity')[:10]
 
     # ЛОГИ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ (для возможности удаления)
+    # Определяем, чьи записи показывать в блоке "Последние записи"
+    if view_username:
+        display_user = get_object_or_404(User, username=view_username)
+    else:
+        display_user = request.user
+
     user_logs = UserActivityLog.objects.filter(
-        user=request.user, 
+        user=display_user, 
         activity_type=exercise
     ).order_by('-created_at')[:5]
     
@@ -151,7 +159,7 @@ def exercise_detail_view(request, pk):
         quest_status = {'title': quest_obj.title, 'required': quest_obj.required_quantity, 'done': done}
 
     return render(request, 'activities/exercise_detail.html', {
-        'exercise': exercise, 'leaderboard': leaderboard, 'user_logs': user_logs, 'quest': quest_status
+        'exercise': exercise, 'leaderboard': leaderboard, 'user_logs': user_logs, 'quest': quest_status, 'view_mode': view_username, 'display_user': display_user  
     })
 
 # --- ПРОФИЛЬ И ВХОД ---
@@ -162,7 +170,7 @@ def profile_view(request):
     
     # Считаем топ-5 упражнений этого пользователя
     # Используем related_name='logs' из вашей модели UserActivityLog
-    favorite_activities = request.user.logs.values('activity_type__name').annotate(
+    favorite_activities = request.user.logs.values('activity_type__name', 'activity_type__id').annotate(
         total_count=Count('id')
     ).order_by('-total_count')[:5]
 
@@ -322,3 +330,23 @@ def get_notifications(request):
         })
     
     return JsonResponse({'notifications': data, 'unread_count': unread_count})
+
+@login_required
+def public_profile_view(request, username):
+    # Ищем пользователя по username
+    user = get_object_or_404(User, username=username)
+    profile = user.profile
+    
+    # Топ-5 упражнений этого атлета
+    favorite_activities = user.logs.values(
+        'activity_type__name', 
+        'activity_type__id'
+    ).annotate(
+        total_count=Count('id')
+    ).order_by('-total_count')[:5]
+
+    return render(request, 'activities/public_profile.html', {
+        'target_user': user,
+        'profile': profile,
+        'favorite_activities': favorite_activities
+    })

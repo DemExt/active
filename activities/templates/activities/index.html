@@ -141,9 +141,22 @@
                     <tr style="{% if user.username == request.user.username %}background: rgba(0,123,255,0.1);{% endif %}">
                         <td style="padding: 15px; font-weight: bold;">{{ forloop.counter }}</td>
                         <td style="padding: 15px; display: flex; align-items: center; gap: 12px;">
-                            {% if user.profile.avatar %}<img src="{{ user.profile.avatar.url }}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover;">
-                            {% else %}<div style="width: 35px; height: 35px; background: #eee; border-radius: 50%; text-align: center; line-height: 35px; color: #333;">👤</div>{% endif %}
-                            <strong>{{ user.username }}</strong>
+                            {% if user.username %}
+                                <!-- Если это обычный объект User -->
+                                <a href="{% url 'public_profile' user.username %}" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 12px;">
+                                    {% if user.profile.avatar %}
+                                        <img src="{{ user.profile.avatar.url }}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover;">
+                                    {% else %}
+                                        <div style="width: 35px; height: 35px; background: rgba(128,128,128,0.2); border-radius: 50%; text-align: center; line-height: 35px; color: inherit;">👤</div>
+                                    {% endif %}
+                                    <strong>{{ user.username }}</strong>
+                                </a>
+                            {% else %}
+                                <div style="display: flex; align-items: center; gap: 12px; opacity: 0.5;">
+                                    <div style="width: 35px; height: 35px; background: #eee; border-radius: 50%; text-align: center; line-height: 35px;">👤</div>
+                                    <strong>Аноним</strong>
+                                </div>
+                            {% endif %}
                         </td>
                         <td style="padding: 15px; text-align: center;"><span class="rank-badge-sm">{{ user.profile.get_global_rank }}</span></td>
                         <td style="padding: 15px; text-align: right;"><span style="color: #007bff; font-weight: bold;">{{ user.profile.get_average_place }}</span></td>
@@ -208,7 +221,14 @@
                     <div id="comments-{{ log.id }}" style="max-height: 150px; overflow-y: auto; margin-bottom: 10px;">
                         {% for comment in log.comments.all %}
                             <div style="font-size: 0.85em; margin-bottom: 5px;">
-                                <strong style="color: #007bff;">{{ comment.user.username }}:</strong> {{ comment.text }}
+                                {% if comment.user.username %}
+                                    <a href="{% url 'public_profile' comment.user.username %}" style="text-decoration: none; color: #007bff; font-weight: bold;">
+                                        {{ comment.user.username }}
+                                    </a>:
+                                {% else %}
+                                    <strong>Призрак:</strong>
+                                {% endif %}
+                                {{ comment.text }}
                             </div>
                         {% endfor %}
                     </div>
