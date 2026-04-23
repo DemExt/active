@@ -124,6 +124,27 @@
             </div>
         </div>
 
+        <!-- Поиск атлетов -->
+        <div style="max-width: 400px; margin: 0 auto 25px;">
+            <form action="{% url 'home' %}" method="GET" style="display: flex; gap: 10px; position: relative;">
+                <input type="text" name="search" id="user-search" list="user-suggestions" 
+                       value="{{ search_query|default:'' }}" 
+                       placeholder="Найти атлета..." 
+                       autocomplete="off"
+                       style="flex: 1; padding: 12px 20px; border-radius: 15px; border: 1px solid var(--border-color); background: var(--card-bg); color: inherit; outline: none;">
+                
+                <!-- Сюда будут подгружаться совпадения -->
+                <datalist id="user-suggestions"></datalist>
+        
+                <button type="submit" style="background: #007bff; color: white; border: none; padding: 0 20px; border-radius: 15px; font-weight: bold; cursor: pointer;">
+                    🔍
+                </button>
+                {% if search_query %}
+                    <a href="{% url 'home' %}" style="display: flex; align-items: center; text-decoration: none; font-size: 1.5em;" title="Сбросить">❌</a>
+                {% endif %}
+            </form>
+        </div>
+
         <!-- Глобальный рейтинг -->
         <h2 style="text-align: center; margin-bottom: 20px;">🌍 Глобальный рейтинг</h2>
         <div class="card shadow" style="padding: 20px; margin-bottom: 50px; border: none;">
@@ -371,6 +392,28 @@
                 })
                 .catch(error => console.error('Ошибка:', error));
             });
+        });
+
+        const searchInput = document.getElementById('user-search');
+        const dataList = document.getElementById('user-suggestions');
+
+        searchInput.addEventListener('input', function() {
+            const val = this.value;
+            if (val.length < 1) {
+                dataList.innerHTML = '';
+                return;
+            }
+
+            fetch(`/user-suggestions/?q=${encodeURIComponent(val)}`)
+                .then(response => response.json())
+                .then(usernames => {
+                    dataList.innerHTML = ''; // Очищаем старые варианты
+                    usernames.forEach(name => {
+                        const option = document.createElement('option');
+                        option.value = name;
+                        dataList.appendChild(option);
+                    });
+                });
         });
     </script>
 </body>

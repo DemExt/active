@@ -69,10 +69,19 @@ def index_view(request):
         if profile.last_activity_date and profile.last_activity_date < yesterday:
             profile.streak = 0
             profile.save()
-    
+
+    query = request.GET.get('search')
+    if query:
+        # Ищем пользователей, чей ник содержит введенный текст
+        global_leaderboard = User.objects.filter(username__icontains=query).select_related('profile')[:10]
+    else:
+        # Твой обычный запрос для ТОП-10 (замени на свою логику рейтинга, если нужно)
+        global_leaderboard = User.objects.all().select_related('profile')[:10]
+        
     return render(request, 'activities/index.html', {
         'categories': categories,
         'global_leaderboard': global_leaderboard,
+        'search_query': query,
         'recent_logs': recent_logs,
         'today_points': today_points,
         'daily_goal': daily_goal,
@@ -350,3 +359,12 @@ def public_profile_view(request, username):
         'profile': profile,
         'favorite_activities': favorite_activities
     })
+
+def user_search_suggestions(request):
+    query = request.GET.get('q', '')
+    if len(query) < 1:
+        return JsonResponse([], safe=False)
+    
+    # Ищем первых 5 подходящих пользователей
+    users = User.objects.filter(username__icontains=query).values_list('username', flat=True)[:5]
+    return JsonResponse(list(users), safe=False)
