@@ -111,6 +111,10 @@ class UserActivityLog(models.Model):
     quantity = models.IntegerField()
     total_points = models.IntegerField(editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_verified = models.BooleanField(default=False, verbose_name="Подтвержден")
+    # Поля для быстрого подсчета (опционально, но ускоряет работу)
+    votes_yes = models.IntegerField(default=0)
+    votes_no = models.IntegerField(default=0)
     video = models.FileField(
         upload_to='activity_videos/', 
         null=True, 
@@ -121,6 +125,12 @@ class UserActivityLog(models.Model):
     def save(self, *args, **kwargs):
         self.total_points = self.quantity * self.activity_type.points_per_unit
         super().save(*args, **kwargs)
+
+    def get_yes_votes(self):
+        return self.verification_votes.filter(choice='yes').count()
+
+    def get_no_votes(self):
+        return self.verification_votes.filter(choice='no').count()
 
 # Модель профиля (оставляем без изменений)
 class UserProfile(models.Model):
@@ -190,7 +200,10 @@ class UserProfile(models.Model):
 
         for ex in exercises:
             # Получаем рейтинг этого упражнения по рекордам
-            results = User.objects.filter(logs__activity_type=ex).annotate(
+            results = User.objects.filter(
+                logs__activity_type=ex, 
+                logs__is_verified=True # <--- Учитываем только подтвержденные логи
+            ).annotate(
                 best=Max('logs__quantity')
             ).order_by('-best')
             
@@ -266,3 +279,12 @@ class Comment(models.Model):
     log = models.ForeignKey('UserActivityLog', on_delete=models.CASCADE, related_name='comments')
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+
+class RecordVote(models.Model):
+    VOTE_CHOICES = (('yes', 'Да'), ('no', 'Нет'))
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    log = models.ForeignKey(UserActivityLog, on_delete=models.CASCADE, related_name='verification_votes')
+    choice = models.CharField(max_length=3, choices=VOTE_CHOICES)
+
+    class Meta:
+        unique_together = ('user', 'log') # Один юзер — один голос за один рекорд

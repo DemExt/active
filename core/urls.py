@@ -7,7 +7,7 @@ from activities.views import (
     index_view, category_detail_view, exercise_detail_view,
     profile_view, register_view, login_view, logout_view, delete_log_view,
     web_log_create, leaderboard_view, user_stats_view, ActivityLogCreateView,
-    toggle_like, add_comment, get_notifications, mark_notifications_read, public_profile_view, user_search_suggestions
+    toggle_like, add_comment, get_notifications, mark_notifications_read, public_profile_view, user_search_suggestions, vote_record
 )
 
 urlpatterns = [
@@ -21,6 +21,7 @@ urlpatterns = [
     path('logout/', logout_view, name='logout'),
     path('logs/create/web/', web_log_create, name='web_log_create'),
     path('leaderboard/', leaderboard_view),
+    path('vote-record/<int:log_id>/<str:choice>/', vote_record, name='vote_record'),
     path('stats/<str:username>/', user_stats_view),
     path('user-suggestions/', user_search_suggestions, name='user_suggestions'),
     path('logs/create/', ActivityLogCreateView.as_view()),

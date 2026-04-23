@@ -187,29 +187,87 @@
             </table>
         </div>
 
-        <!-- НОВАЯ СЕКЦИЯ: ЛЕНТА ТРЕНИРОВОК -->
-        <h2 style="text-align: center; margin-bottom: 30px;">🔥 Лента достижений</h2>
-        <div style="max-width: 700px; margin: 0 auto;">
-            {% for log in recent_logs %}
-            <div class="feed-card">
+        <!-- ========================================== -->
+        <!-- СЕКЦИЯ 1: ОЧЕРЕДЬ ПОДТВЕРЖДЕНИЯ (Pending)  -->
+        <!-- ========================================== -->
+        {% if pending_logs %}
+        <h2 style="text-align: center; color: #dc3545; margin: 50px 0 20px;">⚖️ Очередь подтверждения</h2>
+        <p style="text-align: center; opacity: 0.7; margin-bottom: 30px;">Проверьте технику атлетов, чтобы рекорды попали в таблицу</p>
+
+        <div style="max-width: 700px; margin: 0 auto 50px;">
+            {% for log in pending_logs %}
+            <div class="feed-card" style="border: 2px solid #dc3545 !important; position: relative; margin-bottom: 25px;">
+                <div style="background: #dc3545; color: white; padding: 5px 12px; border-radius: 10px; font-size: 0.75em; font-weight: bold; display: inline-block; margin-bottom: 15px;">
+                    ⚠️ Ожидает подтверждения
+                </div>
+
                 <!-- Автор поста -->
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
-                    <!-- Контейнер для аватарки и точки -->
                     <div style="position: relative; width: 45px; height: 45px;">
                         {% if log.user.profile.avatar %}
                             <img src="{{ log.user.profile.avatar.url }}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
                         {% else %}
                             <div style="width: 100%; height: 100%; background: rgba(128,128,128,0.2); border-radius: 50%; text-align: center; line-height: 45px;">👤</div>
                         {% endif %}
+                    </div>
+                    <div>
+                        <a href="{% url 'public_profile' log.user.username %}" style="text-decoration: none; color: inherit;">
+                            <strong style="display: block; font-size: 1.1em;">{{ log.user.username }}</strong>
+                        </a>
+                        <small style="opacity: 0.6;">{{ log.created_at|naturaltime }}</small>
+                    </div>
+                </div>
 
-                        <!-- ЗЕЛЕНАЯ ТОЧКА (индикатор онлайн) -->
+                <p style="margin: 0; font-size: 1.05em;">
+                    Претендует на рекорд в <strong>{{ log.activity_type.name }}</strong>: 
+                    <span style="color: #28a745; font-weight: bold;">{{ log.quantity }} {{ log.activity_type.unit_name }}</span>
+                </p>
+
+                {% if log.video %}
+                <video class="feed-video" controls preload="metadata">
+                    <source src="{{ log.video.url }}" type="video/mp4">
+                </video>
+                {% endif %}
+
+                <!-- КНОПКИ ГОЛОСОВАНИЯ -->
+                <div style="margin-top: 20px; display: flex; gap: 10px;">
+                    <button onclick="castVote({{ log.id }}, 'yes', this)" style="background: #28a745; color: white; border: none; padding: 12px; border-radius: 12px; cursor: pointer; flex: 1; font-weight: bold; display: flex; justify-content: center; align-items: center; gap: 8px;">
+                        ✅ Верно (<span class="v-yes">{{ log.get_yes_votes }}</span>)
+                    </button>
+                    <button onclick="castVote({{ log.id }}, 'no', this)" style="background: #6c757d; color: white; border: none; padding: 12px; border-radius: 12px; cursor: pointer; flex: 1; font-weight: bold; display: flex; justify-content: center; align-items: center; gap: 8px;">
+                        ❌ Нарушение (<span class="v-no">{{ log.get_no_votes }}</span>)
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+
+        <!-- ========================================== -->
+        <!-- СЕКЦИЯ 2: ЛЕНТА ДОСТИЖЕНИЙ (Verified)      -->
+        <!-- ========================================== -->
+        <h2 style="text-align: center; margin: 60px 0 30px;">🏆 Лента достижений</h2>
+        <div style="max-width: 700px; margin: 0 auto;">
+            {% for log in verified_logs %}
+            <div class="feed-card" style="margin-bottom: 25px;">
+                <!-- Автор поста -->
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                    <div style="position: relative; width: 45px; height: 45px;">
+                        {% if log.user.profile.avatar %}
+                            <img src="{{ log.user.profile.avatar.url }}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                        {% else %}
+                            <div style="width: 100%; height: 100%; background: rgba(128,128,128,0.2); border-radius: 50%; text-align: center; line-height: 45px;">👤</div>
+                        {% endif %}
+                        
                         {% if log.user.profile.is_online %}
-                            <span style="position: absolute; bottom: 1px; right: 1px; width: 12px; height: 12px; background: #28a745; border: 2px solid var(--card-bg); border-radius: 50%;" title="В сети"></span>
+                            <span style="position: absolute; bottom: 1px; right: 1px; width: 12px; height: 12px; background: #28a745; border: 2px solid var(--card-bg); border-radius: 50%;"></span>
                         {% endif %}
                     </div>
-
                     <div>
-                        <strong style="display: block; font-size: 1.1em;">{{ log.user.username }}</strong>
+                        <a href="{% url 'public_profile' log.user.username %}" style="text-decoration: none; color: inherit;">
+                            <strong style="display: block; font-size: 1.1em;">{{ log.user.username }}</strong>
+                        </a>
                         <small style="opacity: 0.6;">{{ log.created_at|naturaltime }}</small>
                     </div>
                 </div>
@@ -220,34 +278,32 @@
                     <span style="color: #28a745; font-weight: bold;">{{ log.quantity }} {{ log.activity_type.unit_name }}</span>
                 </p>
 
-                <!-- 2. Видео -->
+                <!-- Видео -->
                 {% if log.video %}
                 <video class="feed-video" controls preload="metadata">
                     <source src="{{ log.video.url }}" type="video/mp4">
-                    Ваш браузер не поддерживает видео.
                 </video>
                 {% endif %}
 
-                <!-- 3. ЛАЙКИ -->
+                <!-- ЛАЙКИ -->
                 <div style="margin-top: 15px; display: flex; align-items: center; gap: 15px;">
-                    <button onclick="likeLog({{ log.id }}, this)" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 5px; padding: 0;">
-                        <span class="heart" style="font-size: 1.2em;">{% if request.user in log.likes.all %}❤️{% else %}🤍{% endif %}</span>
-                        <span class="like-count" style="color: var(--text-color); font-weight: bold; font-size: 0.9em;">{{ log.likes.count }}</span>
+                    <button onclick="likeLog({{ log.id }}, this)" style="background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 0;">
+                        <span class="heart" style="font-size: 1.3em;">{% if request.user in log.likes.all %}❤️{% else %}🤍{% endif %}</span>
+                        <span class="like-count" style="color: var(--text-color); font-weight: bold; font-size: 1em;">{{ log.likes.count }}</span>
                     </button>
-                    <span style="font-size: 0.9em; opacity: 0.7;">💬 {{ log.comments.count }}</span>
+                    <span style="font-size: 0.95em; opacity: 0.7;">💬 {{ log.comments.count }}</span>
                 </div>
 
-                <!-- 4. КОММЕНТАРИИ -->
-                <div style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 10px;">
-                    <div id="comments-{{ log.id }}" style="max-height: 150px; overflow-y: auto; margin-bottom: 10px;">
+                <!-- КОММЕНТАРИИ -->
+                <div style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 15px;">
+                    <div id="comments-{{ log.id }}" style="max-height: 200px; overflow-y: auto; margin-bottom: 10px;">
                         {% for comment in log.comments.all %}
-                            <div style="font-size: 0.85em; margin-bottom: 5px;">
+                            <div style="font-size: 0.9em; margin-bottom: 8px;">
                                 {% if comment.user.username %}
                                     <a href="{% url 'public_profile' comment.user.username %}" style="text-decoration: none; color: #007bff; font-weight: bold;">
-                                        {{ comment.user.username }}
-                                    </a>:
+                                        {{ comment.user.username }}</a>:
                                 {% else %}
-                                    <strong>Призрак:</strong>
+                                    <strong style="opacity: 0.5;">Аноним:</strong>
                                 {% endif %}
                                 {{ comment.text }}
                             </div>
@@ -257,14 +313,13 @@
                     <form class="comment-form" data-log-id="{{ log.id }}" style="display: flex; gap: 10px;">
                         {% csrf_token %}
                         <input type="text" name="text" placeholder="Написать комментарий..." required 
-                            style="flex: 1; border: 1px solid var(--border-color); border-radius: 20px; padding: 8px 15px; font-size: 0.85em; background: rgba(128,128,128,0.1); color: inherit; outline: none;">
-                        <button type="submit" style="background: none; border: none; color: #007bff; font-weight: bold; cursor: pointer;">OK</button>
+                            style="flex: 1; border: 1px solid var(--border-color); border-radius: 20px; padding: 10px 18px; font-size: 0.9em; background: rgba(128,128,128,0.1); color: inherit; outline: none;">
+                        <button type="submit" style="background: none; border: none; color: #007bff; font-weight: bold; cursor: pointer; font-size: 0.9em;">OK</button>
                     </form>
                 </div>
-
-            </div> <!-- КОНЕЦ карточки feed-card -->
+            </div>
             {% empty %}
-                <p style="text-align: center; opacity: 0.6; padding: 40px;">Пока никто не выложил видео.</p>
+                <p style="text-align: center; opacity: 0.6; padding: 40px;">Пока нет подтвержденных достижений.</p>
             {% endfor %}
         </div>
     </div>
@@ -354,6 +409,40 @@
                 .then(() => {
                     document.getElementById('unread-badge').style.display = 'none';
                     updateNotifications();
+                });
+        }
+
+        function castVote(logId, choice, btn) {
+            // Формируем URL вручную, чтобы избежать ошибок шаблонизатора
+            const url = "/vote-record/" + logId + "/" + choice + "/";
+
+            fetch(url)
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data) {
+                    if (data.status === 'ok') {
+                        // Ищем родительскую карточку
+                        const card = btn.closest('.feed-card');
+                        
+                        // Обновляем числа, если нашли элементы
+                        const yesSpan = card.querySelector('.v-yes');
+                        const noSpan = card.querySelector('.v-no');
+                        
+                        if (yesSpan) yesSpan.innerText = data.yes;
+                        if (noSpan) noSpan.innerText = data.no;
+
+                        // Если статус сменился на подтвержденный
+                        if (data.is_verified) {
+                            alert("Рекорд подтвержден и добавлен в общий рейтинг!");
+                            location.reload();
+                        }
+                    } else if (data.error) {
+                        alert(data.error);
+                    }
+                })
+                .catch(function(error) {
+                    console.error("Ошибка запроса:", error);
                 });
         }
 

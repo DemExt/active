@@ -13,7 +13,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import OuterRef, Subquery, Count
 from django.contrib import messages
 
-from .models import ActivityType, UserActivityLog, DailyQuest, UserProfile, ActivityCategory, Like, Comment, Notification
+from .models import ActivityType, UserActivityLog, DailyQuest, UserProfile, ActivityCategory, Like, Comment, Notification, RecordVote
 from .serializers import ActivityLogSerializer
 
 # --- ГЛАВНЫЕ СТРАНИЦЫ ---
@@ -24,9 +24,10 @@ def index_view(request):
     categories = ActivityCategory.objects.all()
     
     # 2. Глобальный лидерборд (по среднему месту среди всех упражнений)
-    # Сначала берем всех активных пользователей
-    all_users = User.objects.select_related('profile').filter(logs__isnull=False).distinct()
-    
+    # Теперь в расчет рейтинга должны идти только проверенные логи
+    all_users = User.objects.select_related('profile').filter(
+        logs__is_verified=True # ВАЖНО: только те, у кого есть подтвержденные рекорды
+    ).distinct()
     # Сортируем пользователей по результату метода get_average_place (из модели профиля)
     # Помним: чем меньше среднее место, тем выше пользователь в топе
     sorted_users = sorted(
@@ -45,12 +46,17 @@ def index_view(request):
     
     progress_percent = min(int((today_points / daily_goal) * 100), 100)
 
-    # 4. Фильтруем логи: только те, где ЕСТЬ видео
-    recent_logs = UserActivityLog.objects.filter(
+    # 4. ЛЕНТА: разделяем на "Очередь" и "Проверенные"
+    base_logs = UserActivityLog.objects.filter(
         video__isnull=False
-    ).exclude(video='').select_related(
-        'user', 'user__profile', 'activity_type'
-    ).order_by('-created_at')[:20]
+    ).exclude(video='').select_related('user', 'user__profile', 'activity_type')
+
+    # Неподтвержденные — ТЕПЕРЬ ОНИ БУДУТ ВВЕРХУ (pending_logs)
+    pending_logs = base_logs.filter(is_verified=False).order_by('-created_at')[:10]
+    
+    # Подтвержденные (recent_logs)
+    verified_logs = base_logs.filter(is_verified=True).order_by('-created_at')[:10]
+
 
     # 5. Логика страйка (Огоньки)
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
@@ -82,10 +88,11 @@ def index_view(request):
         'categories': categories,
         'global_leaderboard': global_leaderboard,
         'search_query': query,
-        'recent_logs': recent_logs,
         'today_points': today_points,
         'daily_goal': daily_goal,
         'progress_percent': progress_percent,
+        'pending_logs': pending_logs,    # Новая переменная для верха ленты
+        'verified_logs': verified_logs,   # Основная лента
         'streak': profile.streak,
     })
 
@@ -132,17 +139,19 @@ def exercise_detail_view(request, pk):
     # 1. Подзапрос: ищем ID лучшего лога для каждого пользователя
     best_log_subquery = UserActivityLog.objects.filter(
         user=OuterRef('pk'),
-        activity_type=exercise
+        activity_type=exercise,
+        is_verified=True
     ).order_by('-quantity', '-created_at').values('id')[:1]
 
     # 2. Основной запрос: используем 'logs' (как указано в ошибке Choices are: ..., logs, ...)
     leaderboard = UserActivityLog.objects.filter(
         id__in=Subquery(
-            User.objects.filter(logs__activity_type=exercise)
+            User.objects.filter(logs__activity_type=exercise, logs__is_verified=True) # Только юзеры с подтвержденными логами
             .distinct()
             .annotate(top_log_id=Subquery(best_log_subquery))
             .values('top_log_id')
-        )
+        ),
+        is_verified=True # И сам лог должен быть подтвержденным
     ).select_related('user', 'user__profile').order_by('-quantity')[:10]
 
     # ЛОГИ ТЕКУЩЕГО ПОЛЬЗОВАТЕЛЯ (для возможности удаления)
@@ -368,3 +377,34 @@ def user_search_suggestions(request):
     # Ищем первых 5 подходящих пользователей
     users = User.objects.filter(username__icontains=query).values_list('username', flat=True)[:5]
     return JsonResponse(list(users), safe=False)
+
+#Логика голосования
+@login_required
+def vote_record(request, log_id, choice):
+    log = get_object_or_404(UserActivityLog, id=log_id)
+    
+    # Не даем голосовать за свой рекорд
+    if log.user == request.user:
+        return JsonResponse({'error': 'Нельзя голосовать за себя'}, status=400)
+
+    vote, created = RecordVote.objects.get_or_create(user=request.user, log=log)
+    vote.choice = choice
+    vote.save()
+
+    # Пересчитываем голоса
+    yes_count = log.verification_votes.filter(choice='yes').count()
+    no_count = log.verification_votes.filter(choice='no').count()
+    total = yes_count + no_count
+
+    # Логика подтверждения (Твои условия: 2 "Да" ИЛИ 80%)
+    if yes_count >= 2: # Временное условие для теста
+        if total > 0 and (yes_count / total) >= 0.8:
+            log.is_verified = True
+            log.save()
+
+    return JsonResponse({
+        'status': 'ok',
+        'is_verified': log.is_verified,
+        'yes': yes_count,
+        'no': no_count
+    })
