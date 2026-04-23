@@ -171,13 +171,17 @@ class UserProfile(models.Model):
         if not exercises.exists(): return 100
         
         ex_percents = []
-        total_users = User.objects.count() # Общее число атлетов в системе
-
+        # Считаем только тех пользователей, у которых есть хоть один подтвержденный лог в системе
+        total_users = User.objects.filter(logs__is_verified=True).distinct().count() or 1
+        
         for ex in exercises:
-            leaderboard = User.objects.filter(logs__activity_type=ex).annotate(
+            leaderboard = User.objects.filter(
+                logs__activity_type=ex,
+                logs__is_verified=True # Только проверенные результаты
+            ).annotate(
                 score=models.Sum('logs__total_points')
             ).order_by('-score')
-            
+                
             user_place = total_users
             place = 1
             for entry in leaderboard:

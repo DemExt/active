@@ -48,19 +48,72 @@
             animation: fadeInUp 1s ease-out;
         }
 
-        /* Логотип Буква A */
-        .logo {
-            width: 80px;
-            height: 80px;
-            background: #ff4d4d;
-            color: white;
-            font-size: 50px;
+        .logo-container {
+            margin-bottom: 100px;
+            height: 150px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .word-wrapper {
+            position: relative;
+            font-size: 60px;
             font-weight: 900;
-            line-height: 80px;
-            border-radius: 15px;
-            margin: 0 auto 20px;
-            box-shadow: 0 10px 20px rgba(255, 77, 77, 0.4);
-            animation: logoScale 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-transform: uppercase;
+            color: #ff4d4d;
+            letter-spacing: 2px;
+        }
+
+        /* Основная строка, где в начале написано ALIVE */
+        .main-line {
+            display: flex;
+            position: relative;
+        }
+
+        /* Буква A: в начале стоит в строке, через 2 сек улетает вверх */
+        .moving-a {
+            display: inline-block;
+            position: relative;
+            z-index: 10;
+            animation: flyOut 0.8s cubic-bezier(0.65, 0, 0.35, 1) forwards 2s;
+        }
+
+        /* Слово LIVE: стоит на месте, никуда не дергается */
+        .letters-live {
+            display: inline-block;
+        }
+
+        /* Буквы CTIVE: привязаны к букве A, чтобы лететь вместе с ней или появиться рядом */
+        .top-letters {
+            position: absolute;
+            left: 45px; /* Ширина буквы A + зазор */
+            top: 0;
+            opacity: 0;
+            animation: showActive 0.8s ease forwards 2.5s;
+        }
+
+        /* АНИМАЦИИ */
+
+        @keyframes flyOut {
+            from {
+                transform: translateY(0);
+            }
+            to {
+                /* Улетает вверх над словом Live */
+                transform: translateY(-70px);
+            }
+        }
+
+        @keyframes showActive {
+            from {
+                opacity: 0;
+                transform: translateY(0); /* Относительно своего места наверху */
+            }
+            to {
+                opacity: 1;
+                transform: translateY(-70px); /* Встает в ряд с улетевшей A */
+            }
         }
 
         .slogan {
@@ -116,7 +169,20 @@
 <body>
     <div class="bg-image">
         <div class="login-box">
-            <div class="logo">A</div>
+            <div class="logo-container">
+                <div class="word-wrapper">
+                    <!-- СТРОКА-ОСНОВА (ALIVE) -->
+                    <div class="main-line">
+                        <!-- Буква A, которая в начале часть слова ALIVE -->
+                        <span class="moving-a">A</span>
+                        <!-- Остальная часть слова ALIVE, которая стоит на месте -->
+                        <span class="letters-live">Live</span>
+                    </div>
+            
+                    <!-- СКРЫТЫЕ БУКВЫ CTIVE (появятся наверху) -->
+                    <div class="top-letters">ctive</div>
+                </div>
+            </div>
             <div class="slogan">Твой предел — это только начало</div>
             
             <form method="POST">
