@@ -13,7 +13,7 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import OuterRef, Subquery, Count
 from django.contrib import messages
 
-from .models import ActivityType, UserActivityLog, DailyQuest, UserProfile, ActivityCategory, Like, Comment, Notification, RecordVote
+from .models import ActivityType, UserActivityLog, DailyQuest, UserProfile, ActivityCategory, Like, Comment, Notification, RecordVote, Rivalry
 from .serializers import ActivityLogSerializer
 
 # --- ГЛАВНЫЕ СТРАНИЦЫ ---
@@ -186,30 +186,32 @@ def exercise_detail_view(request, pk):
 def profile_view(request):
     profile, created = UserProfile.objects.get_or_create(user=request.user)
     
-    # Считаем топ-5 упражнений этого пользователя
-    # Используем related_name='logs' из вашей модели UserActivityLog
-    favorite_activities = request.user.logs.values('activity_type__name', 'activity_type__id').annotate(
-        total_count=Count('id')
-    ).order_by('-total_count')[:5]
+    # Получаем по одному ЛУЧШЕМУ результату для каждого упражнения, которое делал юзер
+    user_records = request.user.logs.filter(is_verified=True).values(
+        'activity_type__name', 
+        'activity_type__id',
+        'activity_type__unit_name'
+    ).annotate(
+        best_value=Max('quantity')
+    ).order_by('activity_type__name') # Сортируем просто по названию упражнения
 
     if request.method == "POST":
+        # ... твой существующий код обработки формы (age, height, weight, avatar) ...
         age = request.POST.get('age')
         height = request.POST.get('height')
         weight = request.POST.get('weight')
-        
         profile.age = int(age) if age and age.strip() else None
         profile.height = int(height) if height and height.strip() else None
         profile.weight = float(weight) if weight and weight.strip() else None
-        
         if request.FILES.get('avatar'):
             profile.avatar = request.FILES.get('avatar')
-            
         profile.save()
         return redirect('profile')
 
     return render(request, 'activities/profile.html', {
         'profile': profile,
-        'favorite_activities': favorite_activities
+        'user_records': user_records,
+        'my_rivals': request.user.following_rivals.all(),
     })
 
 def register_view(request):
@@ -338,11 +340,14 @@ def get_notifications(request):
     
     data = []
     for n in notifications:
+        # Проверяем, есть ли связанный лог, чтобы не было ошибки
+        log_name = n.log.activity_type.name if n.log else None
+
         data.append({
             'id': n.id,
             'sender': n.sender.username,
             'type': n.notification_type,
-            'log_name': n.log.activity_type.name,
+            'log_name': log_name,
             'is_read': n.is_read,
             'time': "только что" # В идеале передать naturaltime, но для теста так
         })
@@ -351,22 +356,24 @@ def get_notifications(request):
 
 @login_required
 def public_profile_view(request, username):
-    # Ищем пользователя по username
-    user = get_object_or_404(User, username=username)
-    profile = user.profile
+    # Ищем пользователя, чью страницу открываем
+    target_user = get_object_or_404(User, username=username)
+    profile = target_user.profile
     
-    # Топ-5 упражнений этого атлета
-    favorite_activities = user.logs.values(
+    # Собираем ВСЕ лучшие подтвержденные рекорды этого атлета
+    user_records = target_user.logs.filter(is_verified=True).values(
         'activity_type__name', 
-        'activity_type__id'
+        'activity_type__id',
+        'activity_type__unit_name'
     ).annotate(
-        total_count=Count('id')
-    ).order_by('-total_count')[:5]
+        best_value=Max('quantity')
+    ).order_by('activity_type__name')
 
     return render(request, 'activities/public_profile.html', {
-        'target_user': user,
+        'target_user': target_user,
         'profile': profile,
-        'favorite_activities': favorite_activities
+        'user_records': user_records,
+        'is_rival': Rivalry.objects.filter(athlete=request.user, rival=target_user).exists(),
     })
 
 def user_search_suggestions(request):
@@ -408,3 +415,26 @@ def vote_record(request, log_id, choice):
         'yes': yes_count,
         'no': no_count
     })
+
+@login_required
+def toggle_rival(request, username):
+    target_user = get_object_or_404(User, username=username)
+    if target_user == request.user:
+        return JsonResponse({'error': 'Нельзя соревноваться с самим собой'}, status=400)
+
+    rivalry, created = Rivalry.objects.get_or_create(athlete=request.user, rival=target_user)
+    
+    if not created:
+        rivalry.delete()
+        is_rival = False
+    else:
+        is_rival = True
+        # Опционально: создаем уведомление для соперника
+        Notification.objects.create(
+            recipient=target_user,
+            sender=request.user,
+            notification_type='rival', # Добавь этот тип в модель Notification
+            log=None # Лог здесь не нужен
+        )
+
+    return JsonResponse({'is_rival': is_rival})

@@ -71,6 +71,15 @@
             </div>
 
             <h2 style="margin: 0 0 5px 0;">{{ target_user.username }}</h2>
+
+            <!-- Кнопка Соперника -->
+            <button id="rival-btn" 
+                    onclick="toggleRival('{{ target_user.username }}')" 
+                    data-is-rival="{{ is_rival|yesno:'true,false' }}"
+                    style="margin-bottom: 20px; padding: 10px 25px; border-radius: 25px; border: none; cursor: pointer; font-weight: bold; transition: all 0.3s ease;
+                    {% if is_rival %} background: #ff4d4d; color: white; {% else %} background: #007bff; color: white; {% endif %}">
+                {% if is_rival %} ⚔️ Мой соперник {% else %} ➕ В соперники {% endif %}
+            </button>
             
             <!-- Секция ранга со шкалой (только просмотр) -->
             {% with progress=profile.get_rank_progress %}
@@ -116,13 +125,25 @@
             </div>
 
             <div class="fav-activities">
-                <h4 style="text-align: left; margin-bottom: 15px;">🔥 Топ активностей</h4>
-                {% for activity in favorite_activities %}
-                    <a href="{% url 'exercise_detail' activity.activity_type__id %}?view_user={{ target_user.username }}" class="activity-item">
-                        <span>{{ activity.activity_type__name }}</span>
-                        <span style="color:#007bff; font-weight:bold;">{{ activity.total_count }} раз</span>
-                    </a>
-                {% endfor %}
+                <h4 style="text-align: left; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                    🏆 Рекорды атлета
+                </h4>
+                <div class="activities-list">
+                    {% for record in user_records %}
+                        <!-- Ссылка ведет на упражнение с параметром просмотра этого юзера -->
+                        <a href="{% url 'exercise_detail' record.activity_type__id %}?view_user={{ target_user.username }}" class="activity-item">
+                            <span>{{ record.activity_type__name }}</span>
+                            <span style="color:#28a745; font-weight:bold;">
+                                {{ record.best_value|floatformat:"-2" }} 
+                                <small style="font-size: 0.8em; opacity: 0.7;">{{ record.activity_type__unit_name }}</small>
+                            </span>
+                        </a>
+                    {% empty %}
+                        <p style="opacity: 0.5; font-size: 0.8em; text-align: left;">
+                            У этого атлета пока нет подтвержденных рекордов.
+                        </p>
+                    {% endfor %}
+                </div>
             </div>
         </div>
     </div>
@@ -159,6 +180,39 @@
                 localStorage.setItem('theme', 'dark');
             }
         });
+
+        function toggleRival(username) {
+            const btn = document.getElementById('rival-btn');
+            
+            // Блокируем кнопку на время запроса, чтобы избежать двойных кликов
+            btn.disabled = true;
+            btn.style.opacity = '0.7';
+
+            fetch(`/toggle-rival/${username}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.is_rival) {
+                        // Если добавили в соперники
+                        btn.innerText = '⚔️ Мой соперник';
+                        btn.style.background = '#ff4d4d'; // Красный
+                        btn.style.boxShadow = '0 4px 12px rgba(255, 77, 77, 0.3)';
+                    } else {
+                        // Если удалили из соперников
+                        btn.innerText = '➕ В соперники';
+                        btn.style.background = '#007bff'; // Синий
+                        btn.style.boxShadow = 'none';
+                    }
+                })
+                .catch(error => {
+                    console.error('Ошибка:', error);
+                    alert('Произошла ошибка при обновлении списка соперников');
+                })
+                .finally(() => {
+                    // Разблокируем кнопку
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                });
+        }
     </script>
 </body>
 </html>

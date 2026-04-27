@@ -146,14 +146,43 @@
                 <div class="stat-box bmi-box"><span class="stat-value">{{ profile.get_bmi|default:"—" }}</span><span class="stat-label">ИМТ: {{ profile.get_bmi_status }}</span></div>
             </div>
 
+            <div class="fav-activities" style="margin-bottom: 30px;">
+                <h4 style="text-align: left; margin-bottom: 15px;">⚔️ Мои соперники</h4>
+                <div style="display: flex; gap: 15px; overflow-x: auto; padding-bottom: 10px;">
+                    {% for rivalry in my_rivals %}
+                        <a href="{% url 'public_profile' rivalry.rival.username %}" style="text-decoration: none; text-align: center; min-width: 70px;">
+                            {% if rivalry.rival.profile.avatar %}
+                                <img src="{{ rivalry.rival.profile.avatar.url }}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid #ff4d4d;">
+                            {% else %}
+                                <div style="width: 50px; height: 50px; background: #eee; border-radius: 50%; line-height: 50px; font-size: 20px; border: 2px solid #ff4d4d;">👤</div>
+                            {% endif %}
+                            <div style="font-size: 0.7em; margin-top: 5px; color: var(--text-color);">{{ rivalry.rival.username }}</div>
+                        </a>
+                    {% empty %}
+                        <p style="opacity: 0.5; font-size: 0.8em;">Вы еще не выбрали соперников.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
             <div class="fav-activities">
-                <h4 style="text-align: left; margin-bottom: 10px;">🔥 Часто выполняемые</h4>
-                {% for activity in favorite_activities %}
-                    <a href="{% url 'exercise_detail' activity.activity_type__id %}" class="activity-item">
-                        <span>{{ activity.activity_type__name }}</span>
-                        <span style="color:#007bff; font-weight:bold;">{{ activity.total_count }} раз</span>
-                    </a>
-                {% endfor %}
+                <h4 style="text-align: left; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+                    🏆 Личные рекорды
+                </h4>
+                <div class="activities-list">
+                    {% for record in user_records %}
+                        <a href="{% url 'exercise_detail' record.activity_type__id %}" class="activity-item">
+                            <span>{{ record.activity_type__name }}</span>
+                            <span style="color:#28a745; font-weight:bold;">
+                                {{ record.best_value|floatformat:"-2" }} 
+                                <small style="font-size: 0.8em; opacity: 0.7;">{{ record.activity_type__unit_name }}</small>
+                            </span>
+                        </a>
+                    {% empty %}
+                        <p style="opacity: 0.5; font-size: 0.8em; text-align: left;">
+                            У вас пока нет подтвержденных рекордов.
+                        </p>
+                    {% endfor %}
+                </div>
             </div>
         </div>
 

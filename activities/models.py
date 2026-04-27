@@ -3,15 +3,24 @@ from django.contrib.auth.models import User
 from django.db.models import Max, Sum
 from django.utils import timezone
 
+class Rivalry(models.Model):
+    athlete = models.ForeignKey(User, on_delete=models.CASCADE, related_name='following_rivals')
+    rival = models.ForeignKey(User, on_delete=models.CASCADE, related_name='followed_by_athletes')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('athlete', 'rival') # Нельзя добавить одного и того же дважды
+
 class Notification(models.Model):
     TYPES = (
         ('like', 'Лайк'),
         ('comment', 'Комментарий'),
+        ('rival', 'Соперник'),
     )
     recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
     sender = models.ForeignKey(User, on_delete=models.CASCADE)
     notification_type = models.CharField(max_length=10, choices=TYPES)
-    log = models.ForeignKey('UserActivityLog', on_delete=models.CASCADE)
+    log = models.ForeignKey('UserActivityLog', on_delete=models.CASCADE, null=True, blank=True)
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -64,13 +64,25 @@
                         </span>
                     </button>
                     
-                    <!-- Выпадающий список (содержимое) -->
-                    <div id="notification-dropdown" class="card shadow" style="display: none; position: absolute; top: 40px; right: 0; width: 280px; z-index: 1000; max-height: 400px; overflow-y: auto; background: var(--card-bg); border-radius: 15px; padding: 10px;">
-                        <h5 style="margin: 10px; font-size: 0.9em; opacity: 0.7;">Уведомления</h5>
-                        <div id="notification-list">
-                            <!-- Сюда JS будет вставлять новые уведомления -->
+                    <!-- Выпадающий список уведомлений -->
+                    <div id="notification-dropdown" class="card shadow" style="display: none; position: absolute; top: 45px; right: 0; width: 300px; z-index: 2000; background: var(--card-bg); border-radius: 15px; border: 1px solid var(--border-color); overflow: hidden; padding: 0; backdrop-filter: blur(10px);">
+                        
+                        <!-- Фиксированный заголовок -->
+                        <div style="padding: 12px 15px; border-bottom: 1px solid var(--border-color); background: rgba(128,128,128,0.03);">
+                            <h5 style="margin: 0; font-size: 0.9em; opacity: 0.8; color: var(--text-color);">Уведомления</h5>
                         </div>
-                        <button onclick="markAsRead()" style="width: 100%; background: none; border: none; color: #007bff; font-size: 0.8em; padding: 10px; cursor: pointer;">Прочитано</button>
+
+                        <!-- Область прокрутки для списка -->
+                        <div id="notification-list" style="max-height: 300px; overflow-y: auto; color: var(--text-color);">
+                            <!-- Сюда JS вставляет уведомления -->
+                        </div>
+
+                        <!-- Фиксированная кнопка внизу -->
+                        <div style="border-top: 1px solid var(--border-color); background: rgba(128,128,128,0.03); padding: 5px; text-align: center;">
+                            <button onclick="markAsRead()" style="width: 100%; background: none; border: none; color: #007bff; font-size: 0.85em; padding: 10px; cursor: pointer; font-weight: bold; transition: opacity 0.2s;">
+                                ✅ Пометить как прочитано
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <a href="{% url 'logout' %}" style="color: #dc3545; text-decoration: none; font-weight: 500;">Выйти</a>
@@ -349,15 +361,41 @@
                 localStorage.setItem('theme', 'dark');
             }
         });
+        // Функция переключения видимости меню
         function toggleNotifications() {
             const dropdown = document.getElementById('notification-dropdown');
-            dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+            if (dropdown) {
+                dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+            }
         }
 
+        // Функция отметки прочитанным
         function markAsRead() {
-            fetch('/notifications/read/') // Нужно будет создать такой URL и View
-            .then(() => location.reload());
+            fetch('/notifications/read/')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'ok') {
+                        // Скрываем красную точку
+                        const badge = document.getElementById('unread-badge');
+                        if (badge) {
+                            badge.style.display = 'none';
+                            badge.innerText = '0';
+                        }
+                        // Перерисовываем список (чтобы убрать фоновый цвет у новых)
+                        updateNotifications();
+                    }
+                })
+                .catch(err => console.error("Ошибка очистки:", err));
         }
+
+        // Закрытие уведомлений при клике мимо
+        window.addEventListener('click', function(e) {
+            const container = document.querySelector('.notification-container');
+            const dropdown = document.getElementById('notification-dropdown');
+            if (container && !container.contains(e.target) && dropdown) {
+                dropdown.style.display = 'none';
+            }
+        });
         // Функция для лайков
         function likeLog(logId, btn) {
             fetch(`/like/${logId}/`)
@@ -373,6 +411,7 @@
             fetch('/notifications/get/')
                 .then(response => response.json())
                 .then(data => {
+                    console.log("Пришли уведомления:", data);
                     const badge = document.getElementById('unread-badge');
                     const list = document.getElementById('notification-list');
                     
@@ -393,8 +432,20 @@
                         item.style.fontSize = '0.85em';
                         if (!n.is_read) item.style.background = 'rgba(0,123,255,0.05)';
                         
-                        let text = n.type === 'like' ? '❤️ поставил лайк' : '💬 прокомментировал';
-                        item.innerHTML = `<strong>${n.sender}</strong> ${text} <strong>${n.log_name}</strong>`;
+                        // Определяем текст в зависимости от типа уведомления
+                        let actionText = '';
+                        let objectText = n.log_name ? ` <strong>${n.log_name}</strong>` : '';
+
+                        if (n.type === 'like') {
+                            actionText = '❤️ поставил лайк на';
+                        } else if (n.type === 'comment') {
+                            actionText = '💬 прокомментировал';
+                        } else if (n.type === 'rival') {
+                            actionText = '⚔️ добавил вас в';
+                            objectText = ' <strong>соперники</strong>';
+                        }
+
+                        item.innerHTML = `<strong>${n.sender}</strong> ${actionText}${objectText}`;
                         list.appendChild(item);
                     });
                 });
