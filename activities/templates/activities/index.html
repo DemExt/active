@@ -5,45 +5,19 @@
 <head>
     <title>Fitness App | Главная</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link rel="stylesheet" href="{% static 'activities/css/style.css' %}">
-    <link rel="stylesheet" href="{% static 'activities/css/themes.css' %}">
+    
+    <!-- Подключаем только единый файл стилей с новой версией -->
+    <link rel="stylesheet" href="{% static 'activities/css/style.css' %}?v=1.93">
+    
     <style>
-        /* Адаптация скролла категорий */
-        .category-scroll-menu { background: var(--card-bg) !important; }
-        .category-scroll-menu::-webkit-scrollbar { width: 6px; }
-        .category-scroll-menu::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
-        .category-scroll-menu::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
-        .category-scroll-menu a { color: var(--text-color) !important; border-bottom: 1px solid var(--border-color); }
-        .category-scroll-menu a:hover { background: rgba(0, 123, 255, 0.1); }
-
-        .rank-badge-sm {
-            display: inline-block;
-            background: linear-gradient(135deg, #6e8efb, #a777e3);
-            color: white; padding: 2px 10px; border-radius: 12px;
-            font-size: 0.75em; font-weight: bold;
+        /* Здесь мы оставляем ТОЛЬКО фоновую картинку, чтобы она не конфликтовала со стилями */
+        body {
+            background-image: url("{% static 'activities/images/grey.jpg' %}") !important;
         }
-        
-        /* Карточки ленты и общие карточки */
-        .feed-card, .card {
-            background: var(--card-bg) !important;
-            color: var(--text-color) !important;
-            border: 1px solid var(--border-color) !important;
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-        }
-
-        .leaderboard-table th { color: var(--text-color); opacity: 0.6; }
-        .leaderboard-table tr { border-bottom: 1px solid var(--border-color) !important; }
-
-        .feed-video { width: 100%; border-radius: 15px; margin-top: 15px; background: #000; max-height: 500px; }
     </style>
 </head>
 
 <body>
-    <script>
-        const currentTheme = localStorage.getItem('theme') || 'light';
-        if (currentTheme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
-    </script>
 
     <div class="container mt-5" style="max-width: 900px; margin: auto; padding: 20px;">
         
@@ -52,9 +26,6 @@
             <div style="color: var(--text-color);">Привет, <strong>{{ request.user.username }}</strong>! 👋</div>
             <div style="display: flex; gap: 20px; align-items: center;">
                 <a href="{% url 'profile' %}" style="text-decoration: none; color: #007bff; font-weight: 500;">Личный кабинет</a>
-                <button id="theme-toggle" style="background: none; border: none; cursor: pointer; font-size: 1.5em;">
-                    <span id="theme-icon">🌙</span>
-                </button>
                 <div class="notification-container" style="position: relative; margin-right: 15px;">
                     <button onclick="toggleNotifications()" style="background: none; border: none; cursor: pointer; font-size: 1.4em; position: relative;">
                         🔔
@@ -118,17 +89,22 @@
         <div style="max-width: 700px; margin: 0 auto 40px; text-align: center;">
             <h2 style="margin-bottom: 20px;">Выберите вид активности</h2>
             <div class="custom-select-wrapper" style="position: relative; display: inline-block; width: 100%; max-width: 400px; text-align: left;">
-                <div class="select-trigger" onclick="toggleCategoryMenu()" style="background: var(--card-bg); padding: 15px 20px; border-radius: 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-color); font-weight: bold; backdrop-filter: blur(10px);">
+                
+                <!-- Триггер меню: сделали фон плотнее для контраста -->
+                <div class="select-trigger" onclick="toggleCategoryMenu()" style="background: #ffffff; padding: 15px 20px; border-radius: 15px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border-light); font-weight: bold; box-shadow: 0 4px 12px rgba(0,0,0,0.05); color: var(--text-main);">
                     <span>📋 Все активности</span>
-                    <span id="arrow" style="transition: 0.3s;">▼</span>
+                    <span id="arrow" style="transition: 0.3s; color: var(--text-second);">▼</span>
                 </div>
+                
+                <!-- Выпадающий список: убрали лишние инлайновые стили цвета, теперь всем управляет класс -->
                 <div id="categoryDropdown" class="category-scroll-menu" style="display: none; position: absolute; top: 110%; left: 0; width: 100%; z-index: 1000; max-height: 400px; overflow-y: auto; border-radius: 15px;">
                     {% for cat in categories %}
-                    <a href="{% url 'category_detail' cat.pk %}" style="display: flex; align-items: center; gap: 15px; padding: 12px 20px; text-decoration: none;">
-                        <span style="font-size: 1.5em;">{{ cat.icon }}</span>
-                        <div>
-                            <div style="font-weight: bold;">{{ cat.name }}</div>
-                            <small style="opacity: 0.6;">{{ cat.exercises.count }} упражнений</small>
+                    <a href="{% url 'category_detail' cat.pk %}" style="display: flex; align-items: center; gap: 15px; padding: 14px 20px; text-decoration: none;">
+                        <span style="font-size: 1.6em;">{{ cat.icon }}</span>
+                        <div style="display: flex; flex-direction: column; justify-content: center;">
+                            <!-- Названия активностей теперь четко структурированы -->
+                            <div style="font-weight: 700; line-height: 1.2; margin-bottom: 2px;">{{ cat.name }}</div>
+                            <small style="font-weight: 500;">{{ cat.exercises.count }} упражнений</small>
                         </div>
                     </a>
                     {% endfor %}
@@ -159,40 +135,43 @@
 
         <!-- Глобальный рейтинг -->
         <h2 style="text-align: center; margin-bottom: 20px;">🌍 Глобальный рейтинг</h2>
-        <div class="card shadow" style="padding: 20px; margin-bottom: 50px; border: none;">
-            <table class="leaderboard-table" style="width: 100%; border-collapse: collapse;">
+        <!-- Добавили overflow-x для страховки от вылетов на сверхмаленьких экранах -->
+        <div class="card shadow" style="padding: 10px; margin-bottom: 50px; border: none; overflow-x: auto; -webkit-overflow-scrolling: touch;">
+            <table class="leaderboard-table" style="width: 100%; border-collapse: collapse; min-width: 320px;">
                 <thead>
                     <tr>
-                        <th style="padding: 15px; text-align: left;">#</th>
-                        <th style="padding: 15px; text-align: left;">АТЛЕТ</th>
-                        <th style="padding: 15px; text-align: center;">РАНГ</th>
-                        <th style="padding: 15px; text-align: right;">СР. МЕСТО</th>
+                        <!-- Убрали инлайновые padding: 15px, теперь размеры берутся из style.css -->
+                        <th style="text-align: left; width: 30px;">#</th>
+                        <th style="text-align: left;">АТЛЕТ</th>
+                        <th style="text-align: center; width: 70px;">РАНГ</th>
+                        <th style="text-align: right; width: 90px;">СР. МЕСТО</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for user in global_leaderboard %}
-                    <tr style="{% if user.username == request.user.username %}background: rgba(0,123,255,0.1);{% endif %}">
-                        <td style="padding: 15px; font-weight: bold;">{{ forloop.counter }}</td>
-                        <td style="padding: 15px; display: flex; align-items: center; gap: 12px;">
-                            {% if user.username %}
-                                <!-- Если это обычный объект User -->
-                                <a href="{% url 'public_profile' user.username %}" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 12px;">
-                                    {% if user.profile.avatar %}
-                                        <img src="{{ user.profile.avatar.url }}" style="width: 35px; height: 35px; border-radius: 50%; object-fit: cover;">
-                                    {% else %}
-                                        <div style="width: 35px; height: 35px; background: rgba(128,128,128,0.2); border-radius: 50%; text-align: center; line-height: 35px; color: inherit;">👤</div>
-                                    {% endif %}
-                                    <strong>{{ user.username }}</strong>
-                                </a>
-                            {% else %}
-                                <div style="display: flex; align-items: center; gap: 12px; opacity: 0.5;">
-                                    <div style="width: 35px; height: 35px; background: #eee; border-radius: 50%; text-align: center; line-height: 35px;">👤</div>
-                                    <strong>Аноним</strong>
-                                </div>
-                            {% endif %}
+                    <tr style="{% if user.username == request.user.username %}background: rgba(0,123,255,0.08);{% endif %}">
+                        <td style="font-weight: bold; text-align: left;">{{ forloop.counter }}</td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                {% if user.username %}
+                                    <a href="{% url 'public_profile' user.username %}" style="text-decoration: none; color: inherit; display: flex; align-items: center; gap: 8px;">
+                                        {% if user.profile.avatar %}
+                                            <img src="{{ user.profile.avatar.url }}" style="width: 30px; height: 30px; border-radius: 50%; object-fit: cover; flex-shrink: 0;">
+                                        {% else %}
+                                            <div style="width: 30px; height: 30px; background: rgba(128,128,128,0.2); border-radius: 50%; text-align: center; line-height: 30px; color: inherit; flex-shrink: 0;">👤</div>
+                                        {% endif %}
+                                        <strong style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 110px;">{{ user.username }}</strong>
+                                    </a>
+                                {% else %}
+                                    <div style="display: flex; align-items: center; gap: 8px; opacity: 0.5;">
+                                        <div style="width: 30px; height: 30px; background: #eee; border-radius: 50%; text-align: center; line-height: 30px; flex-shrink: 0;">👤</div>
+                                        <strong>Аноним</strong>
+                                    </div>
+                                {% endif %}
+                            </div>
                         </td>
-                        <td style="padding: 15px; text-align: center;"><span class="rank-badge-sm">{{ user.profile.get_global_rank }}</span></td>
-                        <td style="padding: 15px; text-align: right;"><span style="color: #007bff; font-weight: bold;">{{ user.profile.get_average_place }}</span></td>
+                        <td style="text-align: center;"><span class="rank-badge-sm">{{ user.profile.get_global_rank }}</span></td>
+                        <td style="text-align: right;"><span style="color: #007bff; font-weight: bold;">{{ user.profile.get_average_place }}</span></td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -236,7 +215,7 @@
                 </p>
 
                 {% if log.video %}
-                <video class="feed-video" controls preload="metadata">
+                <video class="feed-video" controls preload="metadata" playsinline muted>
                     <source src="{{ log.video.url }}" type="video/mp4">
                 </video>
                 {% endif %}
@@ -292,7 +271,7 @@
 
                 <!-- Видео -->
                 {% if log.video %}
-                <video class="feed-video" controls preload="metadata">
+                <video class="feed-video" controls preload="metadata" playsinline muted>
                     <source src="{{ log.video.url }}" type="video/mp4">
                 </video>
                 {% endif %}
@@ -322,7 +301,8 @@
                         {% endfor %}
                     </div>
                     
-                    <form class="comment-form" data-log-id="{{ log.id }}" style="display: flex; gap: 10px;">
+                    <!-- ДОБАВЛЕН АТРИБУТ onsubmit ДЛЯ МГНОВЕННОГО ПЕРЕХВАТА AJAX -->
+                    <form class="comment-form" data-log-id="{{ log.id }}" onsubmit="return sendCommentAjax(event, this)" style="display: flex; gap: 10px;">
                         {% csrf_token %}
                         <input type="text" name="text" placeholder="Написать комментарий..." required 
                             style="flex: 1; border: 1px solid var(--border-color); border-radius: 20px; padding: 10px 18px; font-size: 0.9em; background: rgba(128,128,128,0.1); color: inherit; outline: none;">
@@ -497,41 +477,108 @@
                 });
         }
 
-        document.querySelectorAll('.comment-form').forEach(form => {
-            form.addEventListener('submit', function(e) {
-                e.preventDefault(); // Отменяем перезагрузку страницы
-                
-                const logId = this.dataset.logId;
-                const formData = new FormData(this);
-                const commentInput = this.querySelector('input[name="text"]');
+        function sendCommentAjax(event, form) {
+            event.preventDefault(); // Сразу же блокирует перезагрузку страницы телефоном
+            
+            const logId = form.getAttribute('data-log-id');
+            const commentInput = form.querySelector('input[name="text"]');
+            const commentsContainer = document.getElementById(`comments-${logId}`);
+            const formData = new FormData(form);
+
+            fetch(`/comment/${logId}/`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error('Ошибка сервера: ' + response.status);
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'ok') {
+                    const newComment = document.createElement('div');
+                    newComment.style.fontSize = '0.9em';
+                    newComment.style.marginBottom = '8px';
+                    
+                    // Безопасное экранирование текста от XSS
+                    const safeText = data.text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                    newComment.innerHTML = `<a href="/profile/${data.username}/" style="text-decoration: none; color: #007bff; font-weight: bold;">${data.username}</a>: ${safeText}`;
+                    
+                    if (commentsContainer) {
+                        commentsContainer.appendChild(newComment);
+                        commentsContainer.scrollTop = commentsContainer.scrollHeight; // Автопрокрутка вниз
+                    }
+                    commentInput.value = ''; // Очищаем поле ввода
+                } else {
+                    alert('Ошибка добавления: ' + JSON.stringify(data));
+                }
+            })
+            .catch(error => {
+                alert('Сбой AJAX: ' + error.message);
+            });
+
+            return false;
+        }
+
+        // Глобальный перехватчик для ВСЕХ форм комментариев на странице
+        document.body.addEventListener('submit', function(e) {
+            // Проверяем, что отправлена именно форма комментария
+            if (e.target && e.target.classList.contains('comment-form')) {
+                e.preventDefault(); // Жесткая блокировка перезагрузки страницы
+                e.stopPropagation();
+
+                const form = e.target;
+                const logId = form.getAttribute('data-log-id');
+                const commentInput = form.querySelector('input[name="text"]');
                 const commentsContainer = document.getElementById(`comments-${logId}`);
+
+                if (!logId) {
+                    alert("Ошибка: У формы отсутствует атрибут data-log-id!");
+                    return;
+                }
+
+                const formData = new FormData(form);
 
                 fetch(`/comment/${logId}/`, {
                     method: 'POST',
                     body: formData,
                     headers: {
-                        'X-Requested-With': 'XMLHttpRequest', // Сообщаем Django, что это AJAX
+                        'X-Requested-With': 'XMLHttpRequest'
                     }
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Код ошибки от Django: ' + response.status);
+                    }
+                    return response.json();
+                })
                 .then(data => {
                     if (data.status === 'ok') {
-                        // Создаем новый элемент комментария
                         const newComment = document.createElement('div');
                         newComment.style.fontSize = '0.85em';
                         newComment.style.marginBottom = '5px';
-                        newComment.innerHTML = `<strong>${data.username}:</strong> ${data.text}`;
                         
-                        // Добавляем его в список и очищаем поле ввода
-                        commentsContainer.appendChild(newComment);
-                        commentInput.value = '';
+                        // Защита от спецсимволей
+                        const safeText = data.text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                        newComment.innerHTML = `<strong>${data.username}:</strong> ${safeText}`;
                         
-                        // Прокручиваем вниз, если комментариев много
-                        commentsContainer.scrollTop = commentsContainer.scrollHeight;
+                        if (commentsContainer) {
+                            commentsContainer.appendChild(newComment);
+                            commentsContainer.scrollTop = commentsContainer.scrollHeight;
+                        }
+                        commentInput.value = ''; // Очищаем поле
+                    } else {
+                        alert('Django вернул ошибку: ' + JSON.stringify(data));
                     }
                 })
-                .catch(error => console.error('Ошибка:', error));
-            });
+                .catch(error => {
+                    // Если упал сам запрос (например, не тот URL), мы увидим это в окне alert на телефоне
+                    alert('Критическая ошибка отправки: ' + error.message);
+                    console.error(error);
+                });
+            }
         });
 
         const searchInput = document.getElementById('user-search');

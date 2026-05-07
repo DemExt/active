@@ -1,18 +1,155 @@
-body { font-family: system-ui, sans-serif; background: #f8f9fa; color: #212529; }
-.container { max-width: 800px; margin: 50px auto; padding: 20px; }
-.card { background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 20px; }
-.table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-.table th, .table td { padding: 12px; border-bottom: 1px solid #dee2e6; text-align: left; }
-.table-primary { background-color: #cfe2ff; }
-.btn-success { background: #198754; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block; }
-.btn, .btn-save, .menu-btn, .select-trigger {
-    min-height: 48px; /* Минимальный размер для удобного нажатия пальцем */
+:root {
+    /* Основные цвета */
+    --card-bg: rgba(255, 255, 255, 0.92);  /* "Стеклянная" карточка */
+    --text-main: #1a202c;                 /* Глубокий темный для заголовков */
+    --text-second: #4a5568;               /* Мягкий серый для текста */
+    --accent-blue: #007bff;               /* Яркий синий для кнопок и рекордов */
+    --border-light: rgba(0, 0, 0, 0.1);   /* Тонкие границы */
+}
+
+/* Базовые настройки страницы */
+body {
+    background-attachment: fixed;
+    background-size: cover;
+    background-position: center;
+    background-color: #f8f9fa; /* Запасной фон */
+    color: var(--text-main);
+    font-family: 'system-ui', -apple-system, sans-serif;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.container { 
+    max-width: 800px; 
+    margin: 0 auto; 
+    padding: 20px; 
+}
+
+/* УНИВЕРСАЛЬНАЯ КАРТОЧКА (Главная, Профиль, Категории) */
+.card, .feed-card, .profile-card, .activity-card {
+    background: var(--card-bg) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-light) !important;
+    border-radius: 18px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05) !important;
+    padding: 20px;
+    margin-bottom: 20px;
+    color: var(--text-main) !important;
+}
+
+/* ТАБЛИЦЫ (Лидерборд, Списки упражнений) */
+.table, .leaderboard-table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    margin-bottom: 20px; 
+}
+
+.table th, .leaderboard-table th { 
+    padding: 12px; 
+    color: var(--text-second); 
+    border-bottom: 2px solid var(--border-light);
+    text-align: left;
+    font-size: 0.9em;
+    text-transform: uppercase;
+}
+
+.table td, .leaderboard-table td { 
+    padding: 12px; 
+    border-bottom: 1px solid var(--border-light); 
+    color: var(--text-main);
+}
+
+/* КНОПКИ (Адаптация под палец) */
+.btn, .btn-success, .btn-save, .menu-btn, .select-trigger {
+    min-height: 48px;
+    padding: 10px 20px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.1s active;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border: none;
+    cursor: pointer;
 }
 
+.btn-success { background: #198754; color: white; }
+.btn-primary { background: var(--accent-blue); color: white; }
+
 .btn:active, .btn-save:active {
-    transform: scale(0.98); /* Эффект легкого проседания при клике */
+    transform: scale(0.96); /* Эффект нажатия стал чуть заметнее */
+}
+
+/* Ссылки и акценты */
+a { color: var(--accent-blue); text-decoration: none; }
+.record-value { color: var(--accent-blue); font-weight: bold; }
+h1, h2, h3, strong { color: var(--text-main); }
+
+/* Плотный непрозрачный фон для самого выпадающего меню */
+.category-scroll-menu {
+    background-color: #ffffff !important; /* Настоящий белый цвет без прозрачности */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15) !important;
+    border: 1px solid var(--border-light) !important;
+}
+
+/* Стилизация ссылок (активностей) внутри выпадающего меню */
+.category-scroll-menu a {
+    color: var(--text-main) !important; /* Принудительно делаем текст темно-графитовым */
+    border-bottom: 1px solid var(--border-light);
+    background-color: #ffffff !important; /* Убираем прозрачность у строк */
+    transition: background-color 0.2s ease;
+}
+
+/* Цвет второстепенного текста (количество упражнений) */
+.category-scroll-menu a small {
+    color: var(--text-second) !important;
+}
+
+/* Эффект при нажатии пальцем на мобильном устройстве */
+.category-scroll-menu a:active {
+    background-color: #f0f4f8 !important; /* Мягкий серо-синий фон при клике */
+}
+/* Контейнер для медиаподтверждения (карточка с видео или фото) */
+.media-confirmation-card {
+    width: 100%;
+    max-width: 400px; /* Идеальная ширина под экран любого смартфона */
+    margin: 15px auto;
+    background: var(--card-bg) !important;
+    border-radius: 16px;
+    overflow: hidden; /* Чтобы углы видео/фото скруглялись вместе с карточкой */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+/* Ограничитель размера для самого медиафайла */
+.media-confirm-viewport {
+    width: 100%;
+    height: 250px; /* Фиксированная высота, чтобы медиа не занимало весь экран */
+    background-color: #000000; /* Черный фон для пустых полей, если пропорции не совпали */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+
+/* Автомасштабирование для видео и фото внутри вьюпорта */
+.media-confirm-viewport video,
+.media-confirm-viewport img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain; /* Картинка/видео полностью помещаются в рамки без обрезки */
+    /* Если хотите, чтобы видео заполняло экран целиком без черных полос (как в Reels), 
+       замените 'contain' на 'cover' */
+}
+
+/* Ограничитель и адаптивность для видеороликов на мобильном */
+.feed-video {
+    width: 100% !important;
+    height: 250px !important;       /* Фиксированная высота для всех видео в ленте */
+    max-height: 250px !important;
+    background-color: #000000;     /* Черный фон, если пропорции видео не 16:9 */
+    object-fit: contain !important; /* Видео полностью вписывается в рамки без обрезки сторон */
+    border-radius: 12px;
+    margin-top: 15px;
 }

@@ -24,9 +24,6 @@
     <div class="container mt-5" style="max-width: 800px; margin: auto; padding: 20px;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
             <a href="{% url 'category_detail' exercise.category.pk %}" style="text-decoration: none; color: #007bff;">← Назад к {{ exercise.category.name }}</a>
-            <button id="theme-toggle" style="background: none; border: none; cursor: pointer; font-size: 1.2em;">
-                <span id="theme-icon">🌙</span>
-            </button>
         </div>
         
         <h1 style="margin-top: 20px;">{{ exercise.name }}</h1>
